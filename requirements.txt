@@ -1,0 +1,19 @@
+# Production-grade job scraper dependencies
+# Tested with Python 3.10+
+# Install with:  uv pip install -r requirements.txt  (or:  uv sync)
+
+requests==2.32.3          # HTTP client (mature, well-maintained)
+urllib3==2.2.3            # Connection pooling, retry primitives
+brotli==1.1.0             # Brotli decompression (several sites send br-encoded responses)
+beautifulsoup4==4.12.3    # Robust HTML parsing (handles malformed markup)
+lxml==5.3.0               # Fast parser backend for BeautifulSoup
+openpyxl==3.1.5           # Excel .xlsx writer (no Excel install needed)
+PyYAML==6.0.2             # Human-friendly config files
+tenacity==9.0.0           # Retry with exponential backoff
+python-dateutil==2.9.0    # Robust date parsing ("Posted on Jul 31, 2026", "9d ago", etc.)
+fake-useragent==1.5.1     # Rotating realistic User-Agent strings
+tqdm==4.66.5              # Progress bar for long range-mode runs
+colorama==0.4.6           # Cross-platform colored log output (Windows-friendly)
+
+# Dev / test only (optional)
+pytest==8.3.2             # Test runner

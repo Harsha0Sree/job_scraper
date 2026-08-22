@@ -1,0 +1,29 @@
+# =========================================================================
+#  Crontab example — install with:  crontab crontab.example
+#  (Edit paths below to match your installation)
+# =========================================================================
+
+# --- Variables -----------------------------------------------------------
+SHELL=/bin/bash
+PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
+MAILTO=your-email@example.com            # <-- change this
+PROJECT_DIR=/home/user/job_scraper       # <-- change this to your install path
+LOGFILE=${PROJECT_DIR}/data/logs/cron.log
+
+# Make sure uv is on PATH (if installed via the standalone installer)
+PATH=/home/user/.local/bin:${PATH}
+
+# --- Daily scrape — runs every day at 09:00 ------------------------------
+# Scrapes all 7 sources, filters for 0-yrs-experience remote backend/AI roles,
+# appends new matches to jobs_zero_experience.xlsx
+0 9 * * * cd ${PROJECT_DIR} && uv run python -m scraper.cli daily >> ${LOGFILE} 2>&1
+
+# --- Weekly range scrape — runs every Monday at 10:00 --------------------
+# Backfills any jobs posted in the last 7 days that might have been missed
+0 10 * * 1 cd ${PROJECT_DIR} && uv run python -m scraper.cli range --days 7 >> ${LOGFILE} 2>&1
+
+# --- Monthly range scrape — runs on the 1st of each month at 11:00 -------
+0 11 1 * * cd ${PROJECT_DIR} && uv run python -m scraper.cli range --days 30 >> ${LOGFILE} 2>&1
+
+# --- Health-check — runs daily at 09:30 to verify state.json -------------
+30 9 * * * cd ${PROJECT_DIR} && uv run python -m scraper.cli status >> ${LOGFILE} 2>&1

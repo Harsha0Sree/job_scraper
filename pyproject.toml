@@ -1,0 +1,29 @@
+[project]
+name = "job-scraper"
+version = "1.1.0"
+description = "Production-grade remote job scraper for backend/AI engineering roles"
+requires-python = ">=3.10"
+readme = "README.md"
+
+dependencies = [
+    "requests==2.32.3",
+    "urllib3==2.2.3",
+    "brotli==1.1.0",
+    "beautifulsoup4==4.12.3",
+    "lxml==5.3.0",
+    "openpyxl==3.1.5",
+    "PyYAML==6.0.2",
+    "tenacity==9.0.0",
+    "python-dateutil==2.9.0",
+    "fake-useragent==1.5.1",
+    "tqdm==4.66.5",
+    "colorama==0.4.6",
+]
+
+[project.optional-dependencies]
+dev = ["pytest==8.3.2"]
+
+[tool.uv]
+# Use uv for dependency management. To install:
+#   uv sync        (creates .venv and installs all deps)
+#   uv sync --extra dev   (also installs pytest)

@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+env/
+
+# uv
+uv.lock
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Runtime data (created by the scraper)
+data/state.json
+data/state.json.bak
+data/logs/*.log
+data/cache/*.json
+jobs_zero_experience.xlsx
+jobs_zero_experience.tmp.xlsx

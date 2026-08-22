@@ -1,0 +1,19 @@
+[Unit]
+Description=Job Scraper - monthly 30-day backfill
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/user/job_scraper
+ExecStart=/home/user/.local/bin/uv run python -m scraper.cli range --days 30
+StandardOutput=append:/home/user/job_scraper/data/logs/systemd.log
+StandardError=append:/home/user/job_scraper/data/logs/systemd.log
+TimeoutStartSec=7200
+User=user
+Group=user
+
+NoNewPrivileges=yes
+ProtectSystem=full
+ProtectHome=read-only
+PrivateTmp=yes

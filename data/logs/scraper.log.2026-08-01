@@ -1,0 +1,207 @@
+2026-08-01 06:39:50 [INFO   ] scraper.cli: ==== scraper start: test ====
+2026-08-01 06:39:50 [INFO   ] scraper.sources.startups_gallery: [startups_gallery] fetching https://startups.gallery/jobs?location=remote
+2026-08-01 06:39:51 [INFO   ] scraper.sources.startups_gallery: [startups_gallery] parsed 21 jobs
+2026-08-01 06:39:51 [INFO   ] scraper.sources.hnhiring: [hnhiring] fetching https://hnhiring.com/locations/remote
+2026-08-01 06:39:54 [INFO   ] scraper.sources.hnhiring: [hnhiring] parsed 143 jobs
+2026-08-01 06:39:54 [INFO   ] scraper.sources.no_wb: [no_wb] fetching page 1: https://www.no-wb.org/
+2026-08-01 06:39:54 [INFO   ] scraper.sources.no_wb: [no_wb] fetching page 2: https://www.no-wb.org/page/2
+2026-08-01 06:39:54 [DEBUG  ] scraper.fetcher: host www.no-wb.org: sleeping 1.77s
+2026-08-01 06:39:57 [INFO   ] scraper.sources.no_wb: [no_wb] parsed 48 jobs from 2 pages
+2026-08-01 06:39:57 [INFO   ] scraper.sources.aijobs: [aijobs] fetching page 1: https://aijobs.net/?location=remote
+2026-08-01 06:39:58 [INFO   ] scraper.sources.aijobs: [aijobs] fetching page 2: https://aijobs.net/?location=remote&page=2
+2026-08-01 06:39:58 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 1.31s
+2026-08-01 06:40:00 [INFO   ] scraper.sources.aijobs: [aijobs] parsed 100 jobs from 2 pages
+2026-08-01 06:40:00 [INFO   ] scraper.sources.wellfound: [wellfound] fetching https://wellfound.com/jobs (use_browser=False)
+2026-08-01 06:40:01 [WARNING] scraper.sources.wellfound: [wellfound] BLOCKED by DataDome anti-bot protection. To enable scraping, install playwright and set 'use_browser: true' in config.yaml under sources.wellfound. Skipping this source.
+2026-08-01 06:40:01 [INFO   ] scraper.sources.workatastartup: [workatastartup] fetching page 1: https://www.workatastartup.com/jobs?minExperience=0&role=eng&layout=list-compact&sortBy=created_desc&page=1
+2026-08-01 06:40:02 [INFO   ] scraper.sources.workatastartup: [workatastartup] fetching page 2: https://www.workatastartup.com/jobs?minExperience=0&role=eng&layout=list-compact&sortBy=created_desc&page=2
+2026-08-01 06:40:02 [DEBUG  ] scraper.fetcher: host www.workatastartup.com: sleeping 1.75s
+2026-08-01 06:40:04 [INFO   ] scraper.sources.workatastartup: [workatastartup] parsed 56 jobs from 2 pages
+2026-08-01 06:40:04 [INFO   ] scraper.sources.grepjob: [grepjob] fetching page 1: https://grepjob.com/?specialty=Backend%2CAI+%26+ML&seniority=entry+level&technology=Python&page=1
+2026-08-01 06:40:06 [INFO   ] scraper.sources.grepjob: [grepjob] fetching page 2: https://grepjob.com/?specialty=Backend%2CAI+%26+ML&seniority=entry+level&technology=Python&page=2
+2026-08-01 06:40:06 [DEBUG  ] scraper.fetcher: host grepjob.com: sleeping 0.88s
+2026-08-01 06:40:08 [INFO   ] scraper.sources.grepjob: [grepjob] parsed 20 jobs from 2 pages
+2026-08-01 06:40:24 [INFO   ] scraper.cli: ==== scraper start: range ====
+2026-08-01 06:40:24 [INFO   ] scraper.pipeline: === fetching source: startups_gallery ===
+2026-08-01 06:40:24 [INFO   ] scraper.sources.startups_gallery: [startups_gallery] fetching https://startups.gallery/jobs?location=remote
+2026-08-01 06:40:25 [INFO   ] scraper.sources.startups_gallery: [startups_gallery] parsed 21 jobs
+2026-08-01 06:40:25 [INFO   ] scraper.pipeline: === fetching source: hnhiring ===
+2026-08-01 06:40:25 [INFO   ] scraper.sources.hnhiring: [hnhiring] fetching https://hnhiring.com/locations/remote
+2026-08-01 06:40:28 [INFO   ] scraper.sources.hnhiring: [hnhiring] parsed 143 jobs
+2026-08-01 06:40:28 [INFO   ] scraper.pipeline: === fetching source: no_wb ===
+2026-08-01 06:40:28 [INFO   ] scraper.sources.no_wb: [no_wb] fetching page 1: https://www.no-wb.org/
+2026-08-01 06:40:28 [DEBUG  ] scraper.fetcher: cache hit: https://www.no-wb.org/
+2026-08-01 06:40:28 [INFO   ] scraper.sources.no_wb: [no_wb] fetching page 2: https://www.no-wb.org/page/2
+2026-08-01 06:40:28 [DEBUG  ] scraper.fetcher: cache hit: https://www.no-wb.org/page/2
+2026-08-01 06:40:28 [INFO   ] scraper.sources.no_wb: [no_wb] parsed 48 jobs from 2 pages
+2026-08-01 06:40:28 [INFO   ] scraper.pipeline: === fetching source: aijobs ===
+2026-08-01 06:40:28 [INFO   ] scraper.sources.aijobs: [aijobs] fetching page 1: https://aijobs.net/?location=remote
+2026-08-01 06:40:28 [DEBUG  ] scraper.fetcher: cache hit: https://aijobs.net/?location=remote
+2026-08-01 06:40:28 [INFO   ] scraper.sources.aijobs: [aijobs] fetching page 2: https://aijobs.net/?location=remote&page=2
+2026-08-01 06:40:28 [DEBUG  ] scraper.fetcher: cache hit: https://aijobs.net/?location=remote&page=2
+2026-08-01 06:40:28 [INFO   ] scraper.sources.aijobs: [aijobs] parsed 100 jobs from 2 pages
+2026-08-01 06:40:28 [INFO   ] scraper.pipeline: === fetching source: wellfound ===
+2026-08-01 06:40:28 [INFO   ] scraper.sources.wellfound: [wellfound] fetching https://wellfound.com/jobs (use_browser=False)
+2026-08-01 06:40:28 [WARNING] scraper.sources.wellfound: [wellfound] BLOCKED by DataDome anti-bot protection. To enable scraping, install playwright and set 'use_browser: true' in config.yaml under sources.wellfound. Skipping this source.
+2026-08-01 06:40:28 [INFO   ] scraper.pipeline: === fetching source: workatastartup ===
+2026-08-01 06:40:28 [INFO   ] scraper.sources.workatastartup: [workatastartup] fetching page 1: https://www.workatastartup.com/jobs?minExperience=0&role=eng&layout=list-compact&sortBy=created_desc&page=1
+2026-08-01 06:40:28 [DEBUG  ] scraper.fetcher: cache hit: https://www.workatastartup.com/jobs?minExperience=0&role=eng&layout=list-compact&sortBy=created_desc&page=1
+2026-08-01 06:40:28 [INFO   ] scraper.sources.workatastartup: [workatastartup] fetching page 2: https://www.workatastartup.com/jobs?minExperience=0&role=eng&layout=list-compact&sortBy=created_desc&page=2
+2026-08-01 06:40:28 [DEBUG  ] scraper.fetcher: cache hit: https://www.workatastartup.com/jobs?minExperience=0&role=eng&layout=list-compact&sortBy=created_desc&page=2
+2026-08-01 06:40:28 [INFO   ] scraper.sources.workatastartup: [workatastartup] parsed 56 jobs from 2 pages
+2026-08-01 06:40:28 [INFO   ] scraper.pipeline: === fetching source: grepjob ===
+2026-08-01 06:40:28 [INFO   ] scraper.sources.grepjob: [grepjob] fetching page 1: https://grepjob.com/?specialty=Backend%2CAI+%26+ML&seniority=entry+level&technology=Python&page=1
+2026-08-01 06:40:28 [DEBUG  ] scraper.fetcher: cache hit: https://grepjob.com/?specialty=Backend%2CAI+%26+ML&seniority=entry+level&technology=Python&page=1
+2026-08-01 06:40:28 [INFO   ] scraper.sources.grepjob: [grepjob] fetching page 2: https://grepjob.com/?specialty=Backend%2CAI+%26+ML&seniority=entry+level&technology=Python&page=2
+2026-08-01 06:40:28 [DEBUG  ] scraper.fetcher: cache hit: https://grepjob.com/?specialty=Backend%2CAI+%26+ML&seniority=entry+level&technology=Python&page=2
+2026-08-01 06:40:29 [INFO   ] scraper.sources.grepjob: [grepjob] parsed 20 jobs from 2 pages
+2026-08-01 06:40:29 [INFO   ] scraper.pipeline: total raw jobs parsed: 388
+2026-08-01 06:40:29 [INFO   ] scraper.pipeline: dedup: 388 -> 349 jobs (removed 39 duplicates)
+2026-08-01 06:40:29 [INFO   ] scraper.pipeline: date filter (last 7 days): 349 -> 204 jobs
+2026-08-01 06:40:29 [DEBUG  ] scraper.fetcher: host jobs.ashbyhq.com: sleeping 2.54s
+2026-08-01 06:40:31 [DEBUG  ] scraper.fetcher: host jobs.ashbyhq.com: sleeping 2.01s
+2026-08-01 06:40:33 [DEBUG  ] scraper.fetcher: host jobs.ashbyhq.com: sleeping 2.57s
+2026-08-01 06:40:34 [DEBUG  ] scraper.fetcher: host job-boards.greenhouse.io: sleeping 0.06s
+2026-08-01 06:40:34 [DEBUG  ] scraper.fetcher: host job-boards.greenhouse.io: sleeping 2.23s
+2026-08-01 06:40:36 [DEBUG  ] scraper.fetcher: host jobs.ashbyhq.com: sleeping 2.70s
+2026-08-01 06:40:36 [DEBUG  ] scraper.fetcher: host job-boards.greenhouse.io: sleeping 2.29s
+2026-08-01 06:40:38 [DEBUG  ] scraper.fetcher: host jobs.ashbyhq.com: sleeping 2.55s
+2026-08-01 06:40:39 [DEBUG  ] scraper.fetcher: host job-boards.greenhouse.io: sleeping 2.15s
+2026-08-01 06:40:41 [DEBUG  ] scraper.fetcher: host job-boards.greenhouse.io: sleeping 2.20s
+2026-08-01 06:40:41 [DEBUG  ] scraper.fetcher: host jobs.ashbyhq.com: sleeping 2.02s
+2026-08-01 06:40:43 [DEBUG  ] scraper.fetcher: host jobs.ashbyhq.com: sleeping 2.54s
+2026-08-01 06:40:43 [DEBUG  ] scraper.fetcher: host job-boards.greenhouse.io: sleeping 2.69s
+2026-08-01 06:40:46 [DEBUG  ] scraper.fetcher: host jobs.ashbyhq.com: sleeping 2.94s
+2026-08-01 06:40:46 [DEBUG  ] scraper.fetcher: host job-boards.greenhouse.io: sleeping 2.28s
+2026-08-01 06:40:48 [DEBUG  ] scraper.fetcher: host job-boards.greenhouse.io: sleeping 2.83s
+2026-08-01 06:40:49 [WARNING] scraper.fetcher: fetch https://www.1000.software/careers -> 503; retry 1/3 after 2.0s
+2026-08-01 06:40:51 [DEBUG  ] scraper.fetcher: host job-boards.greenhouse.io: sleeping 2.58s
+2026-08-01 06:41:07 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.06s
+2026-08-01 06:41:09 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.21s
+2026-08-01 06:41:11 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.17s
+2026-08-01 06:41:13 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.42s
+2026-08-01 06:41:15 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.12s
+2026-08-01 06:41:18 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.22s
+2026-08-01 06:41:20 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.41s
+2026-08-01 06:41:22 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.61s
+2026-08-01 06:41:25 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.04s
+2026-08-01 06:41:27 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.38s
+2026-08-01 06:41:29 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.58s
+2026-08-01 06:41:32 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.83s
+2026-08-01 06:41:35 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.43s
+2026-08-01 06:41:37 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.24s
+2026-08-01 06:41:39 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.88s
+2026-08-01 06:41:42 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.82s
+2026-08-01 06:41:45 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.06s
+2026-08-01 06:41:47 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.01s
+2026-08-01 06:41:49 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.96s
+2026-08-01 06:41:52 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.40s
+2026-08-01 06:41:55 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.49s
+2026-08-01 06:41:57 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.77s
+2026-08-01 06:42:00 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.05s
+2026-08-01 06:42:02 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.70s
+2026-08-01 06:42:05 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.92s
+2026-08-01 06:42:07 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.83s
+2026-08-01 06:42:10 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.46s
+2026-08-01 06:42:13 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.44s
+2026-08-01 06:42:15 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.35s
+2026-08-01 06:42:18 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.72s
+2026-08-01 06:42:20 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.14s
+2026-08-01 06:42:22 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.16s
+2026-08-01 06:42:25 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.05s
+2026-08-01 06:42:27 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.06s
+2026-08-01 06:42:29 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.91s
+2026-08-01 06:42:32 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.39s
+2026-08-01 06:42:34 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.02s
+2026-08-01 06:42:36 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.98s
+2026-08-01 06:42:39 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.22s
+2026-08-01 06:42:41 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.32s
+2026-08-01 06:42:44 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.87s
+2026-08-01 06:42:46 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.00s
+2026-08-01 06:42:48 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.05s
+2026-08-01 06:42:50 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.69s
+2026-08-01 06:42:53 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.64s
+2026-08-01 06:42:56 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.03s
+2026-08-01 06:42:58 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.70s
+2026-08-01 06:43:01 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.32s
+2026-08-01 06:43:03 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.38s
+2026-08-01 06:43:05 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.96s
+2026-08-01 06:43:08 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.05s
+2026-08-01 06:43:10 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.75s
+2026-08-01 06:43:13 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.24s
+2026-08-01 06:43:15 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.08s
+2026-08-01 06:43:17 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.34s
+2026-08-01 06:43:20 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.26s
+2026-08-01 06:43:22 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.09s
+2026-08-01 06:43:24 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.80s
+2026-08-01 06:43:27 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.76s
+2026-08-01 06:43:30 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.79s
+2026-08-01 06:43:32 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.35s
+2026-08-01 06:43:35 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.38s
+2026-08-01 06:43:37 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.36s
+2026-08-01 06:43:40 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.00s
+2026-08-01 06:43:42 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.98s
+2026-08-01 06:43:45 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.84s
+2026-08-01 06:43:47 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.89s
+2026-08-01 06:43:50 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.07s
+2026-08-01 06:43:52 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.77s
+2026-08-01 06:43:55 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.65s
+2026-08-01 06:43:58 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.77s
+2026-08-01 06:44:01 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.35s
+2026-08-01 06:44:03 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.15s
+2026-08-01 06:44:05 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.31s
+2026-08-01 06:44:07 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.33s
+2026-08-01 06:44:10 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.01s
+2026-08-01 06:44:12 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.52s
+2026-08-01 06:44:14 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.36s
+2026-08-01 06:44:17 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.90s
+2026-08-01 06:44:20 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.85s
+2026-08-01 06:44:22 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.23s
+2026-08-01 06:44:25 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.63s
+2026-08-01 06:44:27 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.45s
+2026-08-01 06:44:30 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.59s
+2026-08-01 06:44:32 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.48s
+2026-08-01 06:44:35 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.96s
+2026-08-01 06:44:38 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.00s
+2026-08-01 06:44:40 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.89s
+2026-08-01 06:44:43 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.51s
+2026-08-01 06:44:45 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.37s
+2026-08-01 06:44:48 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.53s
+2026-08-01 06:44:50 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.81s
+2026-08-01 06:44:53 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.62s
+2026-08-01 06:44:55 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.90s
+2026-08-01 06:44:58 [DEBUG  ] scraper.fetcher: host www.workatastartup.com: sleeping 0.37s
+2026-08-01 06:44:58 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.59s
+2026-08-01 06:44:58 [DEBUG  ] scraper.fetcher: host www.workatastartup.com: sleeping 2.12s
+2026-08-01 06:45:01 [DEBUG  ] scraper.fetcher: host www.workatastartup.com: sleeping 2.41s
+2026-08-01 06:45:01 [DEBUG  ] scraper.fetcher: host aijobs.net: sleeping 2.87s
+2026-08-01 06:45:03 [DEBUG  ] scraper.fetcher: host www.workatastartup.com: sleeping 2.78s
+2026-08-01 06:45:06 [DEBUG  ] scraper.fetcher: host www.workatastartup.com: sleeping 2.26s
+2026-08-01 06:45:08 [DEBUG  ] scraper.fetcher: host www.workatastartup.com: sleeping 2.20s
+2026-08-01 06:45:10 [DEBUG  ] scraper.fetcher: host www.workatastartup.com: sleeping 2.43s
+2026-08-01 06:45:13 [DEBUG  ] scraper.fetcher: host www.workatastartup.com: sleeping 2.75s
+2026-08-01 06:45:15 [DEBUG  ] scraper.fetcher: host www.workatastartup.com: sleeping 2.57s
+2026-08-01 06:45:18 [DEBUG  ] scraper.fetcher: host www.workatastartup.com: sleeping 2.51s
+2026-08-01 06:45:20 [DEBUG  ] scraper.fetcher: host www.workatastartup.com: sleeping 2.16s
+2026-08-01 06:45:23 [DEBUG  ] scraper.fetcher: host www.workatastartup.com: sleeping 2.23s
+2026-08-01 06:45:25 [DEBUG  ] scraper.fetcher: host www.workatastartup.com: sleeping 2.65s
+2026-08-01 06:45:28 [DEBUG  ] scraper.fetcher: host www.workatastartup.com: sleeping 2.21s
+2026-08-01 06:45:30 [DEBUG  ] scraper.fetcher: host www.workatastartup.com: sleeping 2.51s
+2026-08-01 06:45:32 [DEBUG  ] scraper.fetcher: host www.workatastartup.com: sleeping 2.61s
+2026-08-01 06:45:35 [DEBUG  ] scraper.fetcher: host www.workatastartup.com: sleeping 2.90s
+2026-08-01 06:45:38 [DEBUG  ] scraper.fetcher: host www.workatastartup.com: sleeping 2.75s
+2026-08-01 06:45:41 [DEBUG  ] scraper.fetcher: host www.workatastartup.com: sleeping 2.98s
+2026-08-01 06:45:44 [DEBUG  ] scraper.fetcher: host www.workatastartup.com: sleeping 2.79s
+2026-08-01 06:45:46 [DEBUG  ] scraper.fetcher: host www.workatastartup.com: sleeping 2.92s
+2026-08-01 06:45:49 [DEBUG  ] scraper.fetcher: host www.workatastartup.com: sleeping 2.73s
+2026-08-01 06:45:52 [DEBUG  ] scraper.fetcher: host www.workatastartup.com: sleeping 2.39s
+2026-08-01 06:45:54 [DEBUG  ] scraper.fetcher: host www.workatastartup.com: sleeping 2.87s
+2026-08-01 06:45:57 [DEBUG  ] scraper.fetcher: host www.workatastartup.com: sleeping 2.08s
+2026-08-01 06:45:58 [DEBUG  ] scraper.fetcher: host jobs.ashbyhq.com: sleeping 2.30s
+2026-08-01 06:45:59 [DEBUG  ] scraper.fetcher: host www.workatastartup.com: sleeping 2.65s
+2026-08-01 06:46:00 [DEBUG  ] scraper.fetcher: host jobs.ashbyhq.com: sleeping 2.10s
+2026-08-01 06:46:02 [DEBUG  ] scraper.fetcher: host www.workatastartup.com: sleeping 2.33s
+2026-08-01 06:46:02 [DEBUG  ] scraper.fetcher: host jobs.ashbyhq.com: sleeping 2.75s
+2026-08-01 06:46:05 [DEBUG  ] scraper.fetcher: host jobs.ashbyhq.com: sleeping 2.79s
+2026-08-01 06:46:09 [INFO   ] scraper.excel: excel saved: /home/mikeysama/products/job_scraper/jobs_zero_experience.xlsx (qualifying=21 total=79, new_q=21 new_a=79)
+2026-08-01 06:46:09 [INFO   ] scraper.pipeline: run complete: parsed=388 remote=79 cat_match=69 qualifying=21 errors=3 duration=344.2s

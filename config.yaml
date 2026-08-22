@@ -1,0 +1,460 @@
+# =========================================================================
+#  Job Scraper Configuration
+#  Edit this file to tune behaviour without touching the code.
+#  After editing, just re-run:  uv run python -m scraper.cli daily
+# =========================================================================
+
+# --- Sources -------------------------------------------------------------
+sources:
+  startups_gallery:
+    enabled: true
+    adapter: "startups_gallery"
+    url: "https://startups.gallery/jobs?location=remote"
+
+  hnhiring:
+    enabled: true
+    adapter: "hnhiring"
+    url: "https://hnhiring.com/locations/remote"
+    max_pages: 1
+
+  no_wb:
+    enabled: true
+    adapter: "no_wb"
+    url: "https://www.no-wb.org/"
+    max_pages: 2
+
+  aijobs:
+    enabled: true
+    adapter: "aijobs"
+    url: "https://aijobs.net/?location=remote"
+    max_pages: 2
+
+  wellfound:
+    enabled: true
+    adapter: "wellfound"
+    url: "https://wellfound.com/jobs"
+    use_browser: false
+
+  workatastartup:
+    enabled: true
+    adapter: "workatastartup"
+    url: "https://www.workatastartup.com/jobs?minExperience=0&role=eng&layout=list-compact&sortBy=created_desc"
+    max_pages: 2
+
+  grepjob:
+    enabled: true
+    adapter: "grepjob"
+    url: "https://grepjob.com/?specialty=Backend%2CAI+%26+ML&seniority=entry+level&technology=Python"
+    max_pages: 2
+
+# --- Filters -------------------------------------------------------------
+# A job is ACCEPTED only when ALL of the following pass:
+#   1. Location:  remote-from-anywhere OR remote-from-India OR onsite-in-India
+#   2. Category:  title contains a backend OR AI engineering keyword
+#   3. Experience: entry-level (0 years / junior / new grad / intern / fresher)
+filters:
+  # ===== Category filter =====
+  # The TITLE must contain at least one backend OR AI keyword.
+  # (Title-focused to avoid false positives from description mentions.)
+  category:
+    # The TITLE must contain at least one of these (backend engineering)
+    backend_title_keywords:
+      - "backend"
+      - "back-end"
+      - "back end"
+      - "platform engineer"
+      - "infrastructure engineer"
+      - "site reliability"
+      - "sre"
+      - "devops"
+      - "systems engineer"
+      - "distributed systems"
+      - "server engineer"
+      - "api engineer"
+      - "software engineer"
+      - "software developer"
+      - "fullstack"
+      - "full stack"
+      - "full-stack"
+      - "backend developer"
+      - "backend engineer"
+      - "python developer"
+      - "python engineer"
+      - "go developer"
+      - "golang"
+      - "java developer"
+      - "java engineer"
+      - "rust developer"
+      - "rust engineer"
+      - "node.js"
+      - "nodejs"
+      - "data engineer"
+      - "database engineer"
+
+    # The TITLE must contain at least one of these (AI engineering)
+    ai_title_keywords:
+      - "ai engineer"
+      - "ai engineering"
+      - "ml engineer"
+      - "machine learning engineer"
+      - "machine learning"
+      - "deep learning"
+      - "llm engineer"
+      - "applied scientist"
+      - "research scientist"
+      - "ai/ml"
+      - "ai-ml"
+      - "ml platform"
+      - "ai platform"
+      - "data scientist"
+      - "nlp engineer"
+      - "computer vision"
+      - "reinforcement learning"
+      - "generative ai"
+      - "genai"
+      - "gen ai"
+      - "ai agent"
+      - "ai infra"
+      - "ai infrastructure"
+      - "ml infra"
+
+    # Titles containing any of these are auto-rejected (out-of-category)
+    exclude_title_keywords:
+      - "frontend"
+      - "front-end"
+      - "front end"
+      - "ui engineer"
+      - "ux engineer"
+      - "ui/ux"
+      - "mobile"
+      - "ios"
+      - "android"
+      - "react native"
+      - "flutter"
+      - "sales"
+      - "marketing"
+      - "designer"
+      - "design"
+      - "recruiter"
+      - "talent"
+      - "account manager"
+      - "customer success"
+      - "customer support"
+      - "operations manager"
+      - "product manager"
+      - "project manager"
+      - "program manager"
+      - "finance"
+      - "accounting"
+      - "legal"
+      - "hr "
+      - "human resources"
+      - "people operations"
+      - "content"
+      - "copywriter"
+      - "technical writer"
+      - "devrel"
+      - "developer advocate"
+      - "solutions architect"
+      - "solutions engineer"
+      - "security engineer"
+      - "embedded"
+      - "firmware"
+      - "hardware"
+      - "mechanical"
+      - "electrical"
+      - "manufacturing"
+      - "supply chain"
+      - "logistics"
+      - "data analyst"
+      - "business analyst"
+      - "product designer"
+      - "graphic"
+      - "creative"
+
+  # ===== Location filter =====
+  # A job is accepted if its location is:
+  #   (a) remote-from-anywhere, OR
+  #   (b) remote-from-India, OR
+  #   (c) onsite in India (city/state mentioned, no "remote" required)
+  location:
+    # Strong "remote anywhere" signals — accept unconditionally
+    remote_anywhere_patterns:
+      - "remote (worldwide)"
+      - "remote, worldwide"
+      - "remote worldwide"
+      - "work from anywhere"
+      - "anywhere in the world"
+      - "global remote"
+      - "fully remote"
+      - "100% remote"
+      - "remote (anywhere)"
+      - "remote - anywhere"
+      - "remote (global)"
+      - "remote-first"
+      - "remote, global"
+      - "remote, multiple locations"
+      - "remote - multiple locations"
+      - "remote (multiple locations)"
+      - "remote - world"
+      - "worldwide"
+
+    # India-remote signals — accept if "remote" + India indicator
+    remote_india_patterns:
+      - "remote (india)"
+      - "remote, india"
+      - "remote - india"
+      - "remote india"
+      - "work from home india"
+      - "remote from india"
+      - "remote, in"
+      - "remote (in)"
+      - "remote - in"
+
+    # India city/state names — if location mentions one of these,
+    # treat as India (onsite or remote)
+    india_locations:
+      - "bangalore"
+      - "bengaluru"
+      - "mumbai"
+      - "delhi"
+      - "new delhi"
+      - "noida"
+      - "gurgaon"
+      - "gurugram"
+      - "hyderabad"
+      - "pune"
+      - "chennai"
+      - "kolkata"
+      - "ahmedabad"
+      - "jaipur"
+      - "indore"
+      - "kochi"
+      - "coimbatore"
+      - "chandigarh"
+      - "lucknow"
+      - "bhubaneswar"
+      - "mangalore"
+      - "mysore"
+      - "surat"
+      - "visakhapatnam"
+      - "nagpur"
+      - "thiruvananthapuram"
+      - "trivandrum"
+      - "india"
+      - ", in"
+      - "(in)"
+      - "karnataka"
+      - "maharashtra"
+      - "tamil nadu"
+      - "telangana"
+      - "west bengal"
+      - "gujarat"
+      - "rajasthan"
+      - "uttar pradesh"
+      - "madhya pradesh"
+
+    # Region-restricted remotes we should REJECT (not anywhere, not India)
+    # These are remote but restricted to a non-India region
+    restricted_remote_patterns:
+      - "remote (us)"
+      - "remote, us"
+      - "remote - us"
+      - "remote (united states)"
+      - "remote, usa"
+      - "remote - usa"
+      - "remote (america)"
+      - "remote, america"
+      - "remote (europe)"
+      - "remote, europe"
+      - "remote (eu)"
+      - "remote (uk)"
+      - "remote, uk"
+      - "remote - uk"
+      - "remote (canada)"
+      - "remote, canada"
+      - "remote (north america)"
+      - "remote (north america only)"
+      - "remote (emea)"
+      - "remote (apac)"
+      - "remote (singapore)"
+      - "remote (germany)"
+      - "remote (france)"
+      - "remote (netherlands)"
+      - "remote (spain)"
+      - "remote (italy)"
+      - "remote (portugal)"
+      - "remote (poland)"
+      - "remote (brazil)"
+      - "remote (mexico)"
+      - "remote (argentina)"
+      - "remote (australia)"
+      - "remote (new zealand)"
+      - "remote (japan)"
+      - "remote (korea)"
+      - "remote (israel)"
+      - "remote (dach)"
+      - "remote (nordics)"
+      - "remote, united states"
+      - "remote, united kingdom"
+      - "remote - united states"
+      - "remote - united kingdom"
+      - "remote: us"
+      - "remote: us only"
+      - "us only"
+      - "united states only"
+      - "north america only"
+
+    # Negative location tokens — REJECT (explicitly non-remote and not India)
+    non_remote_non_india_patterns:
+      - "onsite, us"
+      - "onsite, uk"
+      - "onsite, europe"
+      - "on-site, us"
+      - "on-site, uk"
+
+  # ===== Zero-experience detection =====
+  zero_experience:
+    # Titles containing any of these are auto-rejected (require experience)
+    senior_keywords:
+      - "senior"
+      - "sr."
+      - "sr "
+      - "lead"
+      - "principal"
+      - "staff"
+      - "manager"
+      - "director"
+      - "head of"
+      - "vp "
+      - "vp-"
+      - "chief"
+      - "architect"
+      - "expert"
+      - "specialist"
+
+    # Seniority levels that imply experience (from ATS tags, not titles)
+    seniority_levels_rejected:
+      - "senior-level"
+      - "mid-level"
+      - "mid level"
+      - "experienced"
+      - "lead"
+      - "principal"
+
+    # Regex patterns that capture a minimum years requirement.
+    # If the captured number >= min_years_threshold, the job is REJECTED.
+    min_years_threshold: 1
+    min_years_patterns:
+      - "(\\d+)\\s*\\+\\s*years?"
+      - "(\\d+)\\s*\\+\\s*yrs?"
+      - "(\\d+)\\s*[-–to]{1,3}\\s*\\d+\\s*years?"
+      - "(\\d+)\\s*[-–to]{1,3}\\s*\\d+\\s*yrs?"
+      - "minimum\\s+of\\s+(\\d+)\\s+years?"
+      - "minimum\\s+(\\d+)\\s+years?"
+      - "at\\s+least\\s+(\\d+)\\s+years?"
+      - "(\\d+)\\s+years?\\s+of\\s+experience"
+      - "(\\d+)\\s+years?\\s+experience"
+      - "(\\d+)\\s+years?\\s+in\\s+"
+      - "experience\\s*[:\\-]\\s*(\\d+)\\s*\\+?\\s*years?"
+      - "experience\\s*[:\\-]\\s*(\\d+)\\s*\\+?\\s*yrs?"
+      - "(\\d+)\\s+years?\\s+building"
+      - "(\\d+)\\s+years?\\s+working"
+      - "(\\d+)\\s+years?\\s+writing"
+      - "(\\d+)\\s+years?\\s+developing"
+      - "requires?\\s+(\\d+)\\s+years?"
+      - "requiring\\s+(\\d+)\\s+years?"
+
+    # Positive signals — at least ONE must be present in title or description
+    entry_level_signals:
+      - "0 years"
+      - "0-1 years"
+      - "0–1 years"
+      - "0‑1 years"
+      - "0 to 1 years"
+      - "0-2 years"
+      - "0–2 years"
+      - "zero years"
+      - "no experience"
+      - "no prior experience"
+      - "no minimum experience"
+      - "no previous experience"
+      - "no work experience"
+      - "entry level"
+      - "entry-level"
+      - "entrylevel"
+      - "junior"
+      - "new grad"
+      - "new graduate"
+      - "recent grad"
+      - "recent graduate"
+      - "fresh grad"
+      - "fresh graduate"
+      - "fresher"
+      - "freshers"
+      - "internship"
+      - "intern role"
+      - "intern position"
+      - "intern program"
+      - "graduate program"
+      - "graduate programme"
+      - "campus hire"
+      - "campus recruitment"
+      - "entry level role"
+      - "entry-level role"
+      - "entry level position"
+      - "entry-level position"
+      - "entry level engineer"
+      - "entry-level engineer"
+      - "training program"
+      - "trainee"
+      - "apprentice"
+      - "apprenticeship"
+      - "co-op"
+      - "placement"
+      - "stipend"
+      - "0-1"
+      - "0-2"
+      - "entry level opportunity"
+      - "early career"
+      - "early-career"
+      - "start your career"
+      - "begin your career"
+
+    # Seniority levels that imply entry-level (from ATS tags)
+    entry_level_seniority_levels:
+      - "entry level"
+      - "entry-level"
+      - "intern"
+      - "internship"
+      - "junior"
+      - "trainee"
+      - "freshers"
+
+    # When True: jobs with NO years-mention at all AND no entry-level
+    # signal are also included (permissive mode). When False: only jobs
+    # with an explicit entry-level signal are kept (strict mode).
+    # Default: false (strict — recommended for "0 years" requirement).
+    include_no_mention: false
+
+# --- HTTP behaviour ------------------------------------------------------
+http:
+  per_host_delay_seconds: 2.0
+  jitter_seconds: 1.0
+  timeout_seconds: 30
+  max_retries: 3
+  backoff_base_seconds: 2.0
+  backoff_max_seconds: 60.0
+  cache_ttl_hours: 24
+
+# --- Output --------------------------------------------------------------
+output:
+  excel_path: "jobs_zero_experience.xlsx"
+  state_path: "data/state.json"
+  log_dir: "data/logs"
+
+# --- Runtime -------------------------------------------------------------
+runtime:
+  max_workers: 4
+  progress_bar: true
+  verbose: true

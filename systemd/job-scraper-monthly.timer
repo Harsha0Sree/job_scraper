@@ -1,0 +1,10 @@
+[Unit]
+Description=Job Scraper - monthly timer
+
+[Timer]
+OnCalendar=*-*-01 11:00:00
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,19 @@
+[Unit]
+Description=Job Scraper - weekly 7-day backfill
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/user/job_scraper
+ExecStart=/home/user/.local/bin/uv run python -m scraper.cli range --days 7
+StandardOutput=append:/home/user/job_scraper/data/logs/systemd.log
+StandardError=append:/home/user/job_scraper/data/logs/systemd.log
+TimeoutStartSec=3600
+User=user
+Group=user
+
+NoNewPrivileges=yes
+ProtectSystem=full
+ProtectHome=read-only
+PrivateTmp=yes
