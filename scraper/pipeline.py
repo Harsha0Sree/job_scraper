@@ -19,8 +19,7 @@ from typing import Dict, List, Optional
 from .config import Config
 from .fetcher import Fetcher
 from .sources import get_adapter
-from .ats import get_parser_for_url
-from .filters import apply_filters
+from .evaluation import evaluate
 from .data_model import RawJob, ScrapedJob
 from .excel_writer import write_workbook
 from .state import StateManager
@@ -180,53 +179,14 @@ def _deep_scrape(raws: List[RawJob], fetcher: Fetcher, cfg: Config) -> List[Scra
     show_progress = cfg.runtime.progress_bar
 
     def _worker(idx: int, raw: RawJob) -> ScrapedJob:
-        job = ScrapedJob.from_raw(raw)
-        job.scraped_at = now_iso()
         try:
-            # Skip deep-scraping for non-HTTP URLs (e.g. hnhiring://text/...)
-            if not raw.ats_url.startswith("http"):
-                job.description = raw.description_hint
-                fr = apply_filters(raw, job.title, job.description, job.location,
-                                   cfg.filters, seniority_text=raw.seniority)
-                _apply_filter_result(job, fr)
-                _log_filter_decision(job)
-                return job
-            r = fetcher.get(raw.ats_url, use_cache=True)
-            if not r.ok:
-                job.error = f"fetch_failed status={r.status} err={r.error}"
-                _log_filter_decision(job)
-                return job
-            parser = get_parser_for_url(raw.ats_url)
-            if parser is None:
-                job.description = raw.description_hint
-                fr = apply_filters(raw, job.title, job.description, job.location,
-                                   cfg.filters, seniority_text=raw.seniority)
-                _apply_filter_result(job, fr)
-                _log_filter_decision(job)
-                return job
-            detail = parser.parse(raw.ats_url, r.text)
-            if detail.title: job.title = detail.title
-            if detail.company: job.company = detail.company
-            if detail.location: job.location = detail.location
-            if detail.description: job.description = detail.description
-            if detail.description_html: job.description_html = detail.description_html
-            # Extract seniority from ATS extra fields if available
-            seniority = raw.seniority
-            if detail.extra:
-                for key in ("seniority", "level", "job_level", "seniority_level"):
-                    v = detail.extra.get(key, "")
-                    if v:
-                        seniority = str(v)
-                        break
-            job.seniority = seniority
-            fr = apply_filters(raw, job.title, job.description, job.location,
-                               cfg.filters, seniority_text=seniority)
-            _apply_filter_result(job, fr)
-            _log_filter_decision(job)
+            return evaluate(raw, fetcher, cfg.filters)
         except Exception as e:
+            job = ScrapedJob.from_raw(raw)
+            job.scraped_at = now_iso()
             job.error = f"{type(e).__name__}: {e}"
             log.exception("error scraping %s", raw.ats_url)
-        return job
+            return job
 
     max_workers = max(1, cfg.runtime.max_workers)
     try:
@@ -251,37 +211,6 @@ def _deep_scrape(raws: List[RawJob], fetcher: Fetcher, cfg: Config) -> List[Scra
     if iter_wrapper:
         iter_wrapper.close()
     return [r for r in results if r is not None]
-
-
-def _apply_filter_result(job: ScrapedJob, fr) -> None:
-    job.is_location_match = fr.is_location_match
-    job.location_type = fr.location_type
-    job.is_category_match = fr.is_category_match
-    job.accepted = fr.accepted
-    job.filter_reason = fr.reason
-    job.category_signals = list(fr.category_signals)
-    job.experience_signals = list(fr.experience_signals)
-    job.years_mentioned = list(fr.years_mentioned)
-
-
-def _log_filter_decision(job: ScrapedJob) -> None:
-    """Log every filter decision for auditability."""
-    status = "ACCEPT" if job.accepted else "reject "
-    if job.error:
-        status = "ERROR  "
-    loc = job.location_type or "—"
-    log.info(
-        "%s [%s] %s @ %s [%s] | loc=%s cat=%s exp=%s | %s",
-        status,
-        job.source,
-        (job.title or "")[:50],
-        (job.company or "")[:20],
-        (job.location or "")[:30],
-        loc,
-        "Y" if job.is_category_match else "N",
-        "Y" if job.accepted else "N",
-        job.filter_reason[:80] if job.filter_reason else (job.error or "")[:80],
-    )
 
 
 def _save_summary(cfg: Config, summary: Dict, qualifying: List[ScrapedJob],
