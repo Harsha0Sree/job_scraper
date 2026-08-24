@@ -161,26 +161,46 @@ filters:
 | Feature | What it does |
 |---|---|
 | **7 pluggable source adapters** | Each source has its own parser; add new sources easily |
-| **Pluggable ATS parsers** | Greenhouse, Ashby, Lever, aijobs.net, workatastartup.com, + generic |
+| **Pluggable ATS parsers** | Greenhouse, Ashby, Lever, aijobs.net, workatastartup.com, + generic fallback (specific parsers always win over the catch-all) |
+| **Single ATS-provider registry** | One URL→provider map feeds every adapter and the Excel audit trail — labels can never disagree with the parser actually used |
+| **Deep job-evaluation module** | Listing → deep-scrape → merge → filter happens at one tested seam (`scraper/evaluation.py`) |
 | **Strict location filter** | Word-boundary matching prevents "Indonesia" matching "India" |
 | **Title-focused category** | Avoids false positives from description mentions |
 | **Smart experience filter** | Ignores "0-N years" ranges (entry-level); ignores form questions |
 | **Full audit trail** | Every job logged with accept/reject reason; "All Scraped Jobs" sheet |
+| **Honest scheduler exit codes** | 0 ok · 1 nothing parsed · 2 config error · 3 some sources failed · 4 all sources failed — cron/systemd can finally tell "quiet day" from "broken" |
+| **Failure webhook hook** | Optional POST of a run report when sources fail (`notifications:` in config.yaml) |
 | **Per-host rate limiting** | 2s ± 1s jitter between requests |
 | **Retry + exponential backoff** | 3 retries on 429/5xx/network errors |
 | **Disk cache** | ATS pages cached 24h |
 | **Cross-run + within-run dedup** | Same job never written twice |
 | **Atomic file writes** | Excel + state.json written to temp then renamed |
 | **Concurrent ATS fetches** | Up to 4 workers |
-| **50 unit tests** | All filters, sources, and ATS parsers tested |
+| **83 unit/integration tests** | Filters, sources, ATS parsers, job evaluation, provider registry, CLI contract, notification hook |
 
 ---
 
 ## Scheduling
 
+### Exit codes (what cron/systemd sees)
+
+| Code | Meaning |
+|------|---------|
+| `0`  | Run OK |
+| `1`  | Nothing parsed, but no source errors (a quiet day) |
+| `2`  | Config / usage error |
+| `3`  | Partial failure — at least one source errored |
+| `4`  | Total failure — every scraped source errored |
+
+Cron mails a job's *output* when it is not redirected — since the entries
+below redirect to a log file, cron will NOT email you on failure. For failure
+alerts use the optional webhook under `notifications:` in `config.yaml`, or
+systemd `OnFailure=` units.
+
 ### cron (macOS / Linux)
 ```bash
-$EDITOR crontab.example   # set PROJECT_DIR and MAILTO
+$EDITOR crontab.example   # set PROJECT_DIR and MAILTO (edit the value lines only —
+                          # cron does not support trailing comments)
 crontab crontab.example
 ```
 Default: daily 09:00, weekly Mon 10:00 (7-day backfill), monthly 1st 11:00 (30-day backfill).
@@ -224,7 +244,7 @@ A: v3 uses word-boundary matching — "Indonesia" no longer matches "India". Bar
 A: Open the "All Scraped Jobs" sheet to see every job with its filter reason. Adjust `config.yaml` filters as needed. Set `include_no_mention: true` for permissive mode.
 
 **Q: Running tests.**
-A: `uv run pytest tests/ -v` (50 tests covering all filters, sources, and ATS parsers).
+A: `uv sync --extra dev` once, then `uv run pytest tests/ -v` (83 tests covering filters, sources, ATS parsers, job evaluation, the provider registry, the CLI contract, and the notification hook).
 
 ---
 
