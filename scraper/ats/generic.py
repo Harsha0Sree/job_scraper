@@ -28,6 +28,7 @@ _DESC_SELECTORS = [
 @register_parser
 class GenericParser(ATSParser):
     provider = "generic"
+    is_fallback = True
 
     @classmethod
     def can_parse(cls, url: str) -> bool:

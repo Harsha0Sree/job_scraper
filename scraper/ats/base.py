@@ -30,10 +30,20 @@ class JobDetail:
 
 class ATSParser:
     provider: str = "unknown"
+    # Declarative dispatch: subclasses either set url_hosts (optionally
+    # with url_requires) — drawn from scraper.providers.hosts_for() — or
+    # override can_parse() entirely (catch-alls).
+    url_hosts: tuple = ()
+    url_requires: tuple = ()
 
     @classmethod
     def can_parse(cls, url: str) -> bool:
-        raise NotImplementedError
+        if not cls.url_hosts:
+            return False
+        return (
+            any(h in url for h in cls.url_hosts)
+            and all(r in url for r in cls.url_requires)
+        )
 
     def parse(self, url: str, html: str) -> JobDetail:
         raise NotImplementedError
@@ -48,7 +58,14 @@ def register_parser(cls: type[ATSParser]) -> type[ATSParser]:
 
 
 def get_parser_for_url(url: str) -> Optional[ATSParser]:
+    # Specific parsers win over declared catch-alls regardless of
+    # registration order; fallbacks are consulted only afterwards.
     for cls in _REGISTRY:
+        if getattr(cls, "is_fallback", False):
+            continue
         if cls.can_parse(url):
+            return cls()
+    for cls in _REGISTRY:
+        if getattr(cls, "is_fallback", False) and cls.can_parse(url):
             return cls()
     return None
