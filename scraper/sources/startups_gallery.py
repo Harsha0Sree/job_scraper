@@ -8,6 +8,7 @@ from typing import List
 from bs4 import BeautifulSoup, Tag
 
 from ..data_model import RawJob
+from ..providers import detect_provider
 from ..utils import parse_posted_date
 from .base import SourceAdapter, register_adapter
 
@@ -24,18 +25,6 @@ GENERIC_ATS_HINTS = (
     "greenhouse.io", "ashbyhq.com", "lever.co", "workable.com",
     "smartrecruiters.com", "tally.so", "linkedin.com/jobs",
 )
-
-
-def detect_provider(url: str) -> str:
-    u = url.lower()
-    if "greenhouse.io" in u: return "greenhouse"
-    if "ashbyhq.com" in u: return "ashby"
-    if "lever.co" in u: return "lever"
-    if "workable.com" in u: return "workable"
-    if "smartrecruiters.com" in u: return "smartrecruiters"
-    if "tally.so" in u: return "tally"
-    if "linkedin.com/jobs" in u: return "linkedin"
-    return "generic"
 
 
 @register_adapter

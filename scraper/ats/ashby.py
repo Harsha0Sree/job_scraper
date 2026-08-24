@@ -6,10 +6,11 @@ import logging
 import re
 
 from .base import ATSParser, JobDetail, register_parser
+from ..providers import hosts_for
 from ..utils import html_to_text
 
 log = logging.getLogger("scraper.ats.ashby")
-ASHBY_HOSTS = ("jobs.ashbyhq.com",)
+ASHBY_HOSTS = hosts_for("ashby")
 
 _APPDATA_START_RE = re.compile(r"window\.__appData\s*=\s*([{\"])")
 
@@ -17,10 +18,7 @@ _APPDATA_START_RE = re.compile(r"window\.__appData\s*=\s*([{\"])")
 @register_parser
 class AshbyParser(ATSParser):
     provider = "ashby"
-
-    @classmethod
-    def can_parse(cls, url: str) -> bool:
-        return any(h in url for h in ASHBY_HOSTS)
+    url_hosts = ASHBY_HOSTS
 
     def parse(self, url: str, html: str) -> JobDetail:
         data = _extract_appdata(html)

@@ -25,6 +25,7 @@ from urllib.parse import urljoin, urlencode, urlparse, parse_qsl
 from bs4 import BeautifulSoup
 
 from ..data_model import RawJob
+from ..providers import detect_provider
 from ..utils import parse_posted_date
 from .base import SourceAdapter, register_adapter
 
@@ -174,17 +175,7 @@ class GrepJobAdapter(SourceAdapter):
             location=location,
             posted_date=posted_date,
             ats_url=apply_url,
-            ats_provider=_detect_provider(apply_url),
+            ats_provider=detect_provider(apply_url),
             description_hint=description,
             seniority=seniority,
         )
-
-
-def _detect_provider(url: str) -> str:
-    u = url.lower()
-    if "greenhouse.io" in u: return "greenhouse"
-    if "ashbyhq.com" in u: return "ashby"
-    if "lever.co" in u: return "lever"
-    if "workable.com" in u: return "workable"
-    if "grepjob.com" in u: return "grepjob"
-    return "generic"

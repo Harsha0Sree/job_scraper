@@ -11,21 +11,20 @@ import re
 from bs4 import BeautifulSoup
 
 from .base import ATSParser, JobDetail, register_parser
+from ..providers import hosts_for
 from ..utils import html_to_text
 
 import logging
 log = logging.getLogger("scraper.ats.aijobs_detail")
 
-_AIJOBS_HOST = "aijobs.net"
+_AIJOBS_HOSTS = hosts_for("aijobs")
 
 
 @register_parser
 class AiJobsDetailParser(ATSParser):
     provider = "aijobs"
-
-    @classmethod
-    def can_parse(cls, url: str) -> bool:
-        return _AIJOBS_HOST in url and "/job/" in url
+    url_hosts = _AIJOBS_HOSTS
+    url_requires = ("/job/",)
 
     def parse(self, url: str, html: str) -> JobDetail:
         soup = BeautifulSoup(html, "lxml")

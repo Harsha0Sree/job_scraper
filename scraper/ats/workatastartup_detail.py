@@ -13,21 +13,20 @@ import logging
 import re
 
 from .base import ATSParser, JobDetail, register_parser
+from ..providers import hosts_for
 from ..utils import html_to_text
 
 log = logging.getLogger("scraper.ats.workatastartup_detail")
 
 
-_WAS_HOST = "workatastartup.com"
+_WAS_HOSTS = hosts_for("workatastartup")
 
 
 @register_parser
 class WorkAtAStartupDetailParser(ATSParser):
     provider = "workatastartup"
-
-    @classmethod
-    def can_parse(cls, url: str) -> bool:
-        return _WAS_HOST in url and "/jobs/" in url
+    url_hosts = _WAS_HOSTS
+    url_requires = ("/jobs/",)
 
     def parse(self, url: str, html_text: str) -> JobDetail:
         m = re.search(r'data-page="([^"]+)"', html_text)

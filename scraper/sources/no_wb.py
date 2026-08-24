@@ -27,6 +27,7 @@ from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 
 from ..data_model import RawJob
+from ..providers import detect_provider
 from .base import SourceAdapter, register_adapter
 
 log = logging.getLogger("scraper.sources.no_wb")
@@ -118,16 +119,6 @@ class NoWbAdapter(SourceAdapter):
             location=location,
             posted_date=None,  # no-wb doesn't show posting dates
             ats_url=apply_url,
-            ats_provider=_detect_provider(apply_url),
+            ats_provider=detect_provider(apply_url),
             description_hint=f"No whiteboard interview process. {description}",
         )
-
-
-def _detect_provider(url: str) -> str:
-    u = url.lower()
-    if "greenhouse.io" in u: return "greenhouse"
-    if "ashbyhq.com" in u: return "ashby"
-    if "lever.co" in u: return "lever"
-    if "rippling.com" in u: return "rippling"
-    if "workable.com" in u: return "workable"
-    return "generic"

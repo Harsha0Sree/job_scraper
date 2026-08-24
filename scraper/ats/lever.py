@@ -9,21 +9,19 @@ import re
 from bs4 import BeautifulSoup
 
 from .base import ATSParser, JobDetail, register_parser
+from ..providers import hosts_for
 from ..utils import html_to_text
 
 import logging
 log = logging.getLogger("scraper.ats.lever")
 
-LEVER_HOSTS = ("jobs.lever.co",)
+LEVER_HOSTS = hosts_for("lever")
 
 
 @register_parser
 class LeverParser(ATSParser):
     provider = "lever"
-
-    @classmethod
-    def can_parse(cls, url: str) -> bool:
-        return any(h in url for h in LEVER_HOSTS)
+    url_hosts = LEVER_HOSTS
 
     def parse(self, url: str, html: str) -> JobDetail:
         soup = BeautifulSoup(html, "lxml")

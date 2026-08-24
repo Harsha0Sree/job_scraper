@@ -25,6 +25,7 @@ from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 
 from ..data_model import RawJob
+from ..providers import detect_provider
 from ..utils import parse_posted_date
 from .base import SourceAdapter, register_adapter
 
@@ -131,7 +132,7 @@ class HnHiringAdapter(SourceAdapter):
             href = a["href"]
             if any(h in href for h in _DEEP_SCRAPE_HOSTS):
                 apply_url = href
-                ats_provider = _detect_provider(href)
+                ats_provider = detect_provider(href)
                 break
         # Fallback: scan description text for any URL
         if not apply_url:
@@ -140,7 +141,7 @@ class HnHiringAdapter(SourceAdapter):
                 candidate = m.group(1).rstrip(".,);]")
                 if any(h in candidate for h in _DEEP_SCRAPE_HOSTS):
                     apply_url = candidate
-                    ats_provider = _detect_provider(candidate)
+                    ats_provider = detect_provider(candidate)
 
         # If no ATS apply URL, SKIP this job — we can't deep-scrape a useful
         # description from the HN comment page, and hammering news.ycombinator.com
@@ -169,13 +170,3 @@ class HnHiringAdapter(SourceAdapter):
             ats_provider=ats_provider,
             description_hint=description,
         )
-
-
-def _detect_provider(url: str) -> str:
-    u = url.lower()
-    if "greenhouse.io" in u: return "greenhouse"
-    if "ashbyhq.com" in u: return "ashby"
-    if "lever.co" in u: return "lever"
-    if "workable.com" in u: return "workable"
-    if "smartrecruiters.com" in u: return "smartrecruiters"
-    return "generic"
