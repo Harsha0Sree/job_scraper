@@ -23,6 +23,7 @@ from .config import load_config
 from .utils import setup_logging
 from .pipeline import run_daily, run_range, run_source
 from .state import StateManager
+from .notify import notify_failure
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -53,6 +54,56 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
+def resolve_exit_code(summary: dict) -> int:
+    """Translate a run summary into the scheduler-facing exit code.
+
+    0  ok
+    1  nothing parsed, but no source errors (a quiet day)
+    3  partial failure: at least one source errored
+    4  total failure: every scraped source errored
+    """
+    failed = summary.get("failed_sources") or []
+    scraped = summary.get("sources_scraped") or []
+    if failed and len(failed) >= len(scraped):
+        return 4
+    if failed:
+        return 3
+    return 0 if summary.get("parsed_count", 0) > 0 else 1
+
+
+def render_summary(summary: dict) -> str:
+    lines = []
+    lines.append("")
+    lines.append("=" * 70)
+    lines.append(f"  Run mode:           {summary.get('mode', '')}")
+    lines.append(f"  Sources scraped:    {', '.join(summary.get('sources_scraped', []))}")
+    failed = summary.get("failed_sources") or []
+    if failed:
+        lines.append(f"  Failed sources:     {', '.join(failed)}")
+    lines.append(f"  Total parsed:       {summary.get('parsed_count', 0)}")
+    lines.append(f"  Location matches:   {summary.get('location_match_count', 0)}")
+    lines.append(f"  Category matches:   {summary.get('category_match_count', 0)}")
+    lines.append(f"  Qualifying (0 yrs): {summary.get('qualifying_count', 0)}")
+    lines.append(f"  Rejected (location):  {summary.get('not_location_count', 0)}")
+    lines.append(f"  Wrong category:     {summary.get('wrong_category_count', 0)}")
+    lines.append(f"  Has experience:     {summary.get('has_experience_count', 0)}")
+    lines.append(f"  Errors:             {summary.get('error_count', 0)}")
+    lines.append(f"  Newly written:      {summary.get('new_written', 0)}")
+    lines.append(f"  Duration:           {summary.get('duration_seconds', 0):.1f}s")
+    lines.append("")
+    lines.append("  Per-source breakdown:")
+    for src, n in sorted(summary.get("by_source", {}).items()):
+        lines.append(f"    {src}: {n} jobs")
+    lines.append("=" * 70)
+    lines.append("")
+    return "\n".join(lines)
+
+
+def _finish_run(cfg, summary: dict) -> int:
+    notify_failure(cfg, summary)
+    return resolve_exit_code(summary)
+
+
 def main(argv=None) -> int:
     args = build_parser().parse_args(argv)
 
@@ -70,21 +121,21 @@ def main(argv=None) -> int:
     try:
         if args.command == "daily":
             summary = run_daily(cfg)
-            _print_summary(summary)
-            return 0 if summary["parsed_count"] > 0 else 1
+            print(render_summary(summary))
+            return _finish_run(cfg, summary)
 
         elif args.command == "range":
             if args.days < 1:
                 print("ERROR: --days must be >= 1", file=sys.stderr)
                 return 2
             summary = run_range(cfg, args.days)
-            _print_summary(summary)
-            return 0 if summary["parsed_count"] > 0 else 1
+            print(render_summary(summary))
+            return _finish_run(cfg, summary)
 
         elif args.command == "source":
             summary = run_source(cfg, args.name, days_back=args.days)
-            _print_summary(summary)
-            return 0 if summary["parsed_count"] > 0 else 1
+            print(render_summary(summary))
+            return _finish_run(cfg, summary)
 
         elif args.command == "status":
             state = StateManager(cfg.state_abspath())
@@ -123,29 +174,6 @@ def main(argv=None) -> int:
         log.error("fatal error: %s", e)
         log.debug("traceback:\n%s", traceback.format_exc())
         return 2
-
-
-def _print_summary(summary: dict) -> None:
-    print()
-    print("=" * 70)
-    print(f"  Run mode:           {summary.get('mode', '')}")
-    print(f"  Sources scraped:    {', '.join(summary.get('sources_scraped', []))}")
-    print(f"  Total parsed:       {summary.get('parsed_count', 0)}")
-    print(f"  Remote jobs:        {summary.get('remote_count', 0)}")
-    print(f"  Category matches:   {summary.get('category_match_count', 0)}")
-    print(f"  Qualifying (0 yrs): {summary.get('qualifying_count', 0)}")
-    print(f"  Not remote:         {summary.get('not_remote_count', 0)}")
-    print(f"  Wrong category:     {summary.get('wrong_category_count', 0)}")
-    print(f"  Has experience:     {summary.get('has_experience_count', 0)}")
-    print(f"  Errors:             {summary.get('error_count', 0)}")
-    print(f"  Newly written:      {summary.get('new_written', 0)}")
-    print(f"  Duration:           {summary.get('duration_seconds', 0):.1f}s")
-    print()
-    print("  Per-source breakdown:")
-    for src, n in sorted(summary.get("by_source", {}).items()):
-        print(f"    {src}: {n} jobs")
-    print("=" * 70)
-    print()
 
 
 def _smoke_test(cfg) -> int:

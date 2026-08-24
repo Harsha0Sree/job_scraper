@@ -50,6 +50,7 @@ def _run_pipeline(cfg: Config, mode: str, days_back: Optional[int],
         "mode": mode,
         "days_back": days_back or "",
         "sources_scraped": [],
+        "failed_sources": [],
         "by_source": {},
         "parsed_count": 0,
         "location_match_count": 0,
@@ -84,7 +85,8 @@ def _run_pipeline(cfg: Config, mode: str, days_back: Optional[int],
             all_raw.extend(jobs)
         except Exception as e:
             log.exception("source %s failed: %s", sc.name, e)
-            summary["sources_scraped"].append(f"{sc.name} (error)")
+            summary["sources_scraped"].append(sc.name)
+            summary["failed_sources"].append(sc.name)
             summary["by_source"][sc.name] = 0
             summary["error_count"] += 1
 
