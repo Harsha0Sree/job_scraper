@@ -458,3 +458,12 @@ runtime:
   max_workers: 4
   progress_bar: true
   verbose: true
+
+# --- Failure notifications -----------------------------------------------
+# When a run has source failures (exit codes 3 or 4), POST a run report
+# to this webhook. Never fires on healthy runs. Leave disabled to rely on
+# cron email / systemd [Unit] OnFailure instead.
+notifications:
+  enabled: false
+  webhook_url: ""
+  timeout_seconds: 10

@@ -85,12 +85,20 @@ class RuntimeConfig:
 
 
 @dataclass
+class NotificationsConfig:
+    enabled: bool = False
+    webhook_url: str = ""
+    timeout_seconds: int = 10
+
+
+@dataclass
 class Config:
     sources: List[SourceConfig] = field(default_factory=list)
     filters: FiltersConfig = field(default_factory=FiltersConfig)
     http: HttpConfig = field(default_factory=HttpConfig)
     output: OutputConfig = field(default_factory=OutputConfig)
     runtime: RuntimeConfig = field(default_factory=RuntimeConfig)
+    notifications: NotificationsConfig = field(default_factory=NotificationsConfig)
     project_root: Path = Path.cwd()
 
     def excel_abspath(self) -> Path:
@@ -153,6 +161,7 @@ _DEFAULTS: Dict[str, Any] = {
         "log_dir": "data/logs",
     },
     "runtime": {"max_workers": 4, "progress_bar": True, "verbose": True},
+    "notifications": {"enabled": False, "webhook_url": "", "timeout_seconds": 10},
 }
 
 
@@ -234,6 +243,7 @@ def load_config(config_path: str | Path | None = None) -> Config:
     http = HttpConfig(**merged["http"])
     out = OutputConfig(**merged["output"])
     rt = RuntimeConfig(**merged["runtime"])
+    notifications = NotificationsConfig(**merged["notifications"])
 
     return Config(
         sources=sources,
@@ -241,5 +251,6 @@ def load_config(config_path: str | Path | None = None) -> Config:
         http=http,
         output=out,
         runtime=rt,
+        notifications=notifications,
         project_root=project_root,
     )
