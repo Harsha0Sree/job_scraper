@@ -14,6 +14,6 @@ User=user
 Group=user
 
 NoNewPrivileges=yes
+# ProtectHome=read-only would block writes to the home-dir outputs — see daily.service.
 ProtectSystem=full
-ProtectHome=read-only
 PrivateTmp=yes

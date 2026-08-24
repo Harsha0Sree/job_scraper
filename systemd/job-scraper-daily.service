@@ -15,6 +15,7 @@ User=user
 Group=user
 
 NoNewPrivileges=yes
+# ProtectHome=read-only would block the scraper from writing the Excel
+# workbook, state.json and logs under its home directory — do not enable.
 ProtectSystem=full
-ProtectHome=read-only
 PrivateTmp=yes
