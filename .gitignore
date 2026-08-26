@@ -11,17 +11,22 @@ env/
 # uv
 uv.lock
 
-# IDE
+# IDE / OS
 .vscode/
 .idea/
 *.swp
 *.swo
 .DS_Store
+*Zone.Identifier
+*:Zone.Identifier
 
 # Runtime data (created by the scraper)
 data/state.json
 data/state.json.bak
-data/logs/*.log
-data/cache/*.json
+data/.feedback_processed.json
+data/logs/*
+!data/logs/.gitkeep
+data/cache/*
+!data/cache/.gitkeep
 jobs_zero_experience.xlsx
 jobs_zero_experience.tmp.xlsx

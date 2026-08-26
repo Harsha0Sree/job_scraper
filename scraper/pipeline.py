@@ -59,11 +59,19 @@ def _run_pipeline(cfg: Config, mode: str, days_back: Optional[int],
         "not_location_count": 0,
         "wrong_category_count": 0,
         "has_experience_count": 0,
+        "feedback_rejected_count": 0,
+        "applied_seen_count": 0,
         "error_count": 0,
         "new_written": 0,
     }
 
     fetcher = Fetcher(cfg.http, cache_dir=cfg.project_root / "data" / "cache")
+
+    # ---- 0. Close the feedback loop before scraping --------------------- #
+    # New user feedback becomes learned rules here, so this very run already
+    # respects everything you have taught the scraper.
+    state = StateManager(cfg.state_abspath())
+    _process_feedback(cfg, state)
 
     # ---- 1. Fetch listings from each source ---------------------------- #
     sources = cfg.enabled_sources()
@@ -121,42 +129,35 @@ def _run_pipeline(cfg: Config, mode: str, days_back: Optional[int],
         log.info("date filter (last %d days): %d -> %d jobs", days_back, before, len(all_raw))
 
     # ---- 3. Deep-scrape ATS detail pages ------------------------------- #
-    scraped = _deep_scrape(all_raw, fetcher, cfg)
+    learned = _load_learned_rules(cfg)
+    scraped = _deep_scrape(all_raw, fetcher, cfg, learned)
 
-    # ---- 4. Apply filters (already applied in worker) ------------------ #
-    # Now just tally up the results.
-    qualifying: List[ScrapedJob] = []
-    all_filtered: List[ScrapedJob] = []   # location OR category matched (audit)
-    all_jobs: List[ScrapedJob] = []       # every scraped job (full audit)
+    # ---- 4. Partition results (filters already applied in workers) ----- #
+    buckets = _partition(scraped, state)
 
-    for job in scraped:
-        all_jobs.append(job)
-        if job.error:
-            summary["error_count"] += 1
-            continue
-        if not job.is_location_match:
-            summary["not_location_count"] += 1
-            continue
-        summary["location_match_count"] += 1
-        if not job.is_category_match:
-            summary["wrong_category_count"] += 1
-            all_filtered.append(job)
-            continue
-        summary["category_match_count"] += 1
-        all_filtered.append(job)
-        if job.accepted:
-            summary["qualifying_count"] += 1
-            qualifying.append(job)
-        else:
-            summary["has_experience_count"] += 1
+    summary["error_count"] += len(buckets["errors"])
+    summary["location_match_count"] = len(buckets["location_matched"])
+    summary["not_location_count"] = len(buckets["not_location"])
+    summary["category_match_count"] = len(buckets["location_matched"]) - len(buckets["wrong_category"])
+    summary["wrong_category_count"] = len(buckets["wrong_category"])
+    summary["has_experience_count"] = len(buckets["has_experience"])
+    summary["qualifying_count"] = len(buckets["qualifying"])
+    summary["feedback_rejected_count"] = len(buckets["feedback_rejected"])
+    summary["applied_seen_count"] = len(buckets["applied_seen"])
+
+    qualifying = buckets["qualifying"]
+    all_filtered = buckets["all_filtered"]
+    all_jobs = list(scraped)              # every scraped job (full audit)
+    excluded_ids = {j.job_id for j in buckets["applied_seen"]}
 
     # ---- 5. Persist ---------------------------------------------------- #
-    state = StateManager(cfg.state_abspath())
     summary["new_written"] = state.mark_seen(qualifying)
     state.save()
 
     # Write Excel with ALL jobs for full audit trail
-    _save_summary(cfg, summary, qualifying, all_filtered, all_jobs)
+    _save_summary(cfg, summary, qualifying, all_filtered, all_jobs,
+                  excluded_job_ids=excluded_ids,
+                  applied_records=state.applied_records())
 
     summary["duration_seconds"] = time.monotonic() - started
     log.info(
@@ -176,13 +177,76 @@ def _run_pipeline(cfg: Config, mode: str, days_back: Optional[int],
     return summary
 
 
-def _deep_scrape(raws: List[RawJob], fetcher: Fetcher, cfg: Config) -> List[ScrapedJob]:
+def _load_learned_rules(cfg: Config):
+    from .feedback import LearnedRules
+    return LearnedRules.load(cfg.project_root / "data" / "learned_rules.yaml")
+
+
+def _process_feedback(cfg: Config, state) -> None:
+    """Consume pending user feedback. Never fails the run."""
+    from .feedback import process_feedback
+    try:
+        report = process_feedback(
+            state,
+            feedback_path=cfg.project_root / "data" / "feedback.yaml",
+            rules_path=cfg.project_root / "data" / "learned_rules.yaml",
+            processed_path=cfg.project_root / "data" / ".feedback_processed.json",
+            senior_keywords=cfg.filters.zero_experience.senior_keywords,
+            ai_keywords=cfg.filters.category.ai_title_keywords,
+        )
+        if report.processed:
+            log.info("feedback loop closed: %d entries -> %d rules, %d applied",
+                     report.processed, len(report.rules_learned),
+                     len(report.applied_marked))
+        if report.unresolved:
+            log.warning("feedback for unknown jobs (no record yet): %s",
+                        report.unresolved)
+    except Exception as e:
+        log.exception("feedback processing failed (continuing): %s", e)
+
+
+def _partition(scraped_jobs: List[ScrapedJob], state) -> Dict[str, List[ScrapedJob]]:
+    """Route scraped jobs into their buckets; the deliverable queue never
+    contains applied or feedback-rejected jobs."""
+    buckets: Dict[str, List[ScrapedJob]] = {
+        "errors": [], "applied_seen": [], "feedback_rejected": [],
+        "not_location": [], "wrong_category": [], "has_experience": [],
+        "qualifying": [], "location_matched": [], "all_filtered": [],
+    }
+    for job in scraped_jobs:
+        if job.error:
+            buckets["errors"].append(job)
+            continue
+        if job.filter_reason.startswith("feedback:"):
+            buckets["feedback_rejected"].append(job)
+            continue
+        if state.is_applied(job.job_id):
+            buckets["applied_seen"].append(job)
+            continue
+        if not job.is_location_match:
+            buckets["not_location"].append(job)
+            continue
+
+        buckets["location_matched"].append(job)
+        buckets["all_filtered"].append(job)
+        if not job.is_category_match:
+            buckets["wrong_category"].append(job)
+            continue
+        if job.accepted:
+            buckets["qualifying"].append(job)
+        else:
+            buckets["has_experience"].append(job)
+    return buckets
+
+
+def _deep_scrape(raws: List[RawJob], fetcher: Fetcher, cfg: Config,
+                 learned=None) -> List[ScrapedJob]:
     results: List[ScrapedJob] = [None] * len(raws)  # type: ignore[list-item]
     show_progress = cfg.runtime.progress_bar
 
     def _worker(idx: int, raw: RawJob) -> ScrapedJob:
         try:
-            return evaluate(raw, fetcher, cfg.filters)
+            return evaluate(raw, fetcher, cfg.filters, learned=learned)
         except Exception as e:
             job = ScrapedJob.from_raw(raw)
             job.scraped_at = now_iso()
@@ -216,7 +280,8 @@ def _deep_scrape(raws: List[RawJob], fetcher: Fetcher, cfg: Config) -> List[Scra
 
 
 def _save_summary(cfg: Config, summary: Dict, qualifying: List[ScrapedJob],
-                  all_filtered: List[ScrapedJob], all_jobs: List[ScrapedJob] = None) -> None:
+                  all_filtered: List[ScrapedJob], all_jobs: List[ScrapedJob] = None,
+                  excluded_job_ids=None, applied_records=None) -> None:
     try:
         write_workbook(
             path=cfg.excel_abspath(),
@@ -224,6 +289,8 @@ def _save_summary(cfg: Config, summary: Dict, qualifying: List[ScrapedJob],
             all_jobs=all_filtered,
             run_summary=summary,
             all_scraped_jobs=all_jobs or [],
+            excluded_job_ids=excluded_job_ids,
+            applied_records=applied_records,
         )
     except Exception as e:
         log.exception("excel write failed: %s", e)

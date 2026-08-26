@@ -171,3 +171,47 @@ def test_seniority_tag_from_ats_extra_rejects_mid_level(cfg):
         assert "seniority:mid-level" in job.filter_reason
     finally:
         _REGISTRY.remove(FakeATS)
+
+
+# --------------------------- learned rules --------------------------------- #
+
+def test_learned_rules_reject_before_anything_else(cfg):
+    from scraper.feedback import LearnedRules
+
+    url = "hnhiring://text/xyz"
+    raw = _raw(ats_url=url, title="Junior Backend Engineer",
+               description_hint="Entry level. Python.")
+    rules = LearnedRules()
+    rules.banned_companies = {"acme"}
+
+    job = evaluate(raw, StubFetcher(), cfg, learned=rules)
+
+    assert job.accepted is False
+    assert job.filter_reason.startswith("feedback:")
+    assert "Acme" in job.filter_reason
+
+
+def test_learned_rules_win_over_a_would_be_accept(cfg):
+    from scraper.feedback import LearnedRules
+
+    html = FIXTURES.joinpath("greenhouse.html").read_text(encoding="utf-8")
+    url = "https://boards.greenhouse.io/acme/jobs/9"
+    fetcher = StubFetcher({url: FetchResult(url=url, status=200, text=html)})
+    raw = _raw(title="Engineer", company="Whatever", location="Remote (Worldwide)",
+               ats_url=url)
+    rules = LearnedRules()
+    rules.banned_job_ids = set()
+    rules.banned_phrases = ["core product"]  # phrase present on that page
+
+    job = evaluate(raw, fetcher, cfg, learned=rules)
+
+    assert job.accepted is False
+    assert job.filter_reason.startswith("feedback:")
+    assert "core product" in job.filter_reason
+
+
+def test_no_learned_rules_means_normal_filtering(cfg):
+    raw = _raw(ats_url="hnhiring://text/abc",
+               description_hint="Entry level position.")
+    job = evaluate(raw, StubFetcher(), cfg, learned=None)
+    assert job.accepted is True

@@ -51,6 +51,19 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("status", help="Show stats from state.json")
     sub.add_parser("list-sources", help="List all configured sources")
     sub.add_parser("test", help="Smoke test: fetch listings from all sources, no ATS deep-scrape")
+
+    fb = sub.add_parser(
+        "feedback",
+        help="Teach the scraper: reject a job that slipped through, or mark one applied",
+    )
+    fb.add_argument("url", help="Job URL (as shown in the Apply URL column)")
+    fb.add_argument("--action", choices=["reject", "applied"], default="reject",
+                    help="reject = constraints violated; applied = you applied")
+    fb.add_argument("--violated", nargs="*",
+                    choices=["location", "category", "experience"], default=[],
+                    help="Which constraints this job violated (repeatable)")
+    fb.add_argument("--comment", default="",
+                    help='Free text; quoted "phrases" become instant bans')
     return p
 
 
@@ -87,6 +100,8 @@ def render_summary(summary: dict) -> str:
     lines.append(f"  Rejected (location):  {summary.get('not_location_count', 0)}")
     lines.append(f"  Wrong category:     {summary.get('wrong_category_count', 0)}")
     lines.append(f"  Has experience:     {summary.get('has_experience_count', 0)}")
+    lines.append(f"  Rejected (your feedback): {summary.get('feedback_rejected_count', 0)}")
+    lines.append(f"  Skipped (already applied): {summary.get('applied_seen_count', 0)}")
     lines.append(f"  Errors:             {summary.get('error_count', 0)}")
     lines.append(f"  Newly written:      {summary.get('new_written', 0)}")
     lines.append(f"  Duration:           {summary.get('duration_seconds', 0):.1f}s")
@@ -102,6 +117,52 @@ def render_summary(summary: dict) -> str:
 def _finish_run(cfg, summary: dict) -> int:
     notify_failure(cfg, summary)
     return resolve_exit_code(summary)
+
+
+def _handle_feedback(cfg, args) -> int:
+    """Record one feedback entry and immediately close the loop."""
+    from .feedback import LearnedRules, append_entry, process_feedback
+    from .state import StateManager
+
+    append_entry(
+        args.url, action=args.action, violated=args.violated,
+        comment=args.comment,
+        path=cfg.project_root / "data" / "feedback.yaml",
+    )
+
+    state = StateManager(cfg.state_abspath())
+    report = process_feedback(
+        state,
+        feedback_path=cfg.project_root / "data" / "feedback.yaml",
+        rules_path=cfg.project_root / "data" / "learned_rules.yaml",
+        processed_path=cfg.project_root / "data" / ".feedback_processed.json",
+        senior_keywords=cfg.filters.zero_experience.senior_keywords,
+        ai_keywords=cfg.filters.category.ai_title_keywords,
+    )
+    rules = LearnedRules.load(cfg.project_root / "data" / "learned_rules.yaml")
+
+    print("Feedback recorded.")
+    print(f"  Processed: {report.processed} new ({report.skipped} already handled)")
+    for url in report.applied_marked:
+        print(f"  Marked applied: {url}")
+    for rule in report.rules_learned:
+        print(f"  Learned: {rule}")
+    if report.unresolved:
+        print("  NOTE: no scrape record yet for:")
+        for url in report.unresolved:
+            print(f"    - {url}")
+        print("  (the exact job is still suppressed; richer rules apply once seen)")
+    print("  Rules in force now:")
+    print(f"    banned jobs:       {len(rules.banned_job_ids)}")
+    print(f"    banned companies:  {len(rules.banned_companies)}")
+    print(f"    title keywords:    {len(rules.banned_title_keywords)}")
+    print(f"    phrases:           {len(rules.banned_phrases)}")
+    for phrase in rules.banned_phrases:
+        print(f"      - '{phrase}'")
+    print(f"    locations:         {len(rules.banned_locations)}")
+    print(f"    years patterns:    {len(rules.banned_years_regexes)}")
+    print("  Future runs will suppress matching jobs automatically.")
+    return 0
 
 
 def main(argv=None) -> int:
@@ -162,6 +223,9 @@ def main(argv=None) -> int:
 
         elif args.command == "test":
             return _smoke_test(cfg)
+
+        elif args.command == "feedback":
+            return _handle_feedback(cfg, args)
 
         else:
             print(f"ERROR: unknown command {args.command}", file=sys.stderr)

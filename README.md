@@ -111,6 +111,37 @@ Per-run stats: timestamp, mode, sources scraped, per-source job counts, filter o
 
 **Idempotency**: re-running never produces duplicate rows. Dedup is based on SHA-256 of the ATS URL.
 
+**Ordering**: every job sheet is rebuilt latest-first — the newest posted jobs are always the top rows you see, across runs.
+
+---
+
+## Applied-jobs tracking & the closed feedback loop
+
+The scraper learns from you. When a wrong job slips into the sheet, or you apply to one, teach it:
+
+```bash
+# A job that violated your constraints — say which ones:
+uv run python -m scraper.cli feedback "https://boards.greenhouse.io/x/jobs/1" \
+    --violated category --comment 'this is really a "growth marketing" role'
+
+# A job you already applied to:
+uv run python -m scraper.cli feedback "https://x/jobs/2" --action applied
+```
+
+What each piece of feedback produces (all auditable in `data/learned_rules.yaml`, every rule records which job taught it and why):
+
+| You report | The scraper learns |
+|---|---|
+| any `reject` | that exact job never reappears; its **company** is banned everywhere |
+| `--violated experience` | *how* it slipped through: `3 yrs` → learned years-pattern; word numbers like `three years` → banned phrase; title tokens like `Sr.` → learned |
+| `--violated category` | quoted phrases from your comment ban instantly; distinctive title tokens ban after **2+ repeat offences** (core terms like `engineer` can never be banned) |
+| `--violated location` | that exact location string is banned |
+| `--action applied` | removed from the deliverable queue forever; recorded on the new **Applied Jobs** sheet |
+
+Rules are enforced inside the evaluation pipeline — suppressed jobs die with a `feedback:` reason visible in logs and the audit sheets (highlighted purple), and are counted as **Rejected (your feedback)** in the run summary. Pending feedback is processed automatically at the start of **every** run, so the loop closes itself even if you only ever run `daily`.
+
+Audit sheets keep everything; only the deliverable "Zero Experience Jobs" queue stays clean of applied and feedback-rejected jobs.
+
 ---
 
 ## Filter audit logging
@@ -174,9 +205,12 @@ filters:
 | **Retry + exponential backoff** | 3 retries on 429/5xx/network errors |
 | **Disk cache** | ATS pages cached 24h |
 | **Cross-run + within-run dedup** | Same job never written twice |
+| **Latest-first sheets** | Newest posted jobs always at the top of every sheet |
+| **Applied tracking** | Applied jobs leave the queue; tracked on their own sheet |
+| **Closed feedback loop** | `cli feedback` turns your rejections/applications into auditable learned rules enforced on every run |
 | **Atomic file writes** | Excel + state.json written to temp then renamed |
 | **Concurrent ATS fetches** | Up to 4 workers |
-| **83 unit/integration tests** | Filters, sources, ATS parsers, job evaluation, provider registry, CLI contract, notification hook |
+| **112 unit/integration tests** | Filters, sources, ATS parsers, job evaluation, provider registry, feedback loop, CLI contract, notification hook |
 
 ---
 
@@ -244,7 +278,7 @@ A: v3 uses word-boundary matching — "Indonesia" no longer matches "India". Bar
 A: Open the "All Scraped Jobs" sheet to see every job with its filter reason. Adjust `config.yaml` filters as needed. Set `include_no_mention: true` for permissive mode.
 
 **Q: Running tests.**
-A: `uv sync --extra dev` once, then `uv run pytest tests/ -v` (83 tests covering filters, sources, ATS parsers, job evaluation, the provider registry, the CLI contract, and the notification hook).
+A: `uv sync --extra dev` once, then `uv run pytest tests/ -v` (112 tests covering filters, sources, ATS parsers, job evaluation, the provider registry, the feedback loop, the CLI contract, and the notification hook).
 
 ---
 

@@ -1,17 +1,24 @@
 """
 Excel writer using openpyxl.
 
-Produces a single .xlsx workbook with FOUR sheets:
-  - Sheet "Zero Experience Jobs":  the qualifying jobs (formatted, hyperlinked)
+Produces a single .xlsx workbook with FIVE sheets:
+  - Sheet "Zero Experience Jobs":  the qualifying jobs (the deliverable queue)
   - Sheet "All Filtered Jobs":     every location+category-matched job (audit)
-  - Sheet "All Scraped Jobs":      EVERY scraped job with filter outcome (full audit)
+  - Sheet "All Scraped Jobs":      EVERY scraped job with filter outcome (audit)
+  - Sheet "Applied Jobs":          jobs you marked applied via feedback
   - Sheet "Run Summary":           per-run stats and per-source breakdown
+
+Every job sheet's data region is rebuilt on each run sorted latest-first
+(newest posted date at top, undated last), so the freshest jobs are always
+the first rows you see. Jobs whose id is in excluded_job_ids are dropped
+from the deliverable and filtered sheets but kept in the full-audit sheet.
 """
 from __future__ import annotations
 
 import logging
+from datetime import date
 from pathlib import Path
-from typing import List
+from typing import Iterable, List, Optional
 
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Alignment, Font, PatternFill, Border, Side
@@ -31,6 +38,7 @@ ACCEPT_FILL = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="s
 REJECT_FILL = PatternFill(start_color="FCE4D6", end_color="FCE4D6", fill_type="solid")   # orange
 ERROR_FILL = PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid")    # yellow
 LOC_MATCH_FILL = PatternFill(start_color="DDEBF7", end_color="DDEBF7", fill_type="solid")  # light blue
+FEEDBACK_FILL = PatternFill(start_color="E4DFEC", end_color="E4DFEC", fill_type="solid")  # purple
 
 CELL_FONT = Font(name="Calibri", size=10)
 CELL_ALIGN = Alignment(vertical="top", wrap_text=True)
@@ -44,7 +52,6 @@ THIN_BORDER = Border(
 )
 
 
-# Columns for each sheet
 QUALIFYING_COLUMNS = [
     ("Date Scraped",        "scraped_at",         20),
     ("Source",              "source",             18),
@@ -100,10 +107,28 @@ ALL_SCRAPED_COLUMNS = [
     ("Description Preview", "description_preview", 50),
 ]
 
+APPLIED_COLUMNS = [
+    ("Date Applied",  "applied_at", 20),
+    ("Source",        "source",     18),
+    ("Job Title",     "title",      40),
+    ("Company",       "company",    28),
+    ("Location",      "location",   30),
+    ("Apply URL",     "ats_url",    50),
+    ("Note",          "note",       40),
+]
+
 SUMMARY_COLUMNS = [
     ("Metric", "metric", 32),
     ("Value",  "value",  50),
 ]
+
+JOB_SHEETS = {
+    "Zero Experience Jobs": QUALIFYING_COLUMNS,
+    "All Filtered Jobs": ALL_FILTERED_COLUMNS,
+    "All Scraped Jobs": ALL_SCRAPED_COLUMNS,
+}
+ALL_SHEETS = ("Zero Experience Jobs", "All Filtered Jobs", "All Scraped Jobs",
+              "Applied Jobs", "Run Summary")
 
 
 def write_workbook(
@@ -111,10 +136,13 @@ def write_workbook(
     qualifying_jobs: List[ScrapedJob],
     all_jobs: List[ScrapedJob],
     run_summary: dict,
-    all_scraped_jobs: List[ScrapedJob] = None,
+    all_scraped_jobs: Optional[List[ScrapedJob]] = None,
+    excluded_job_ids: Optional[set] = None,
+    applied_records: Optional[List[dict]] = None,
 ) -> None:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
+    excluded = excluded_job_ids or set()
 
     if path.exists():
         wb = load_workbook(path)
@@ -123,84 +151,185 @@ def write_workbook(
         wb = Workbook()
         _init_sheets(wb)
 
-    existing_q = _existing_job_ids(wb["Zero Experience Jobs"])
-    existing_a = _existing_job_ids(wb["All Filtered Jobs"])
-    existing_s = _existing_job_ids(wb["All Scraped Jobs"])
-
-    # Dedup within the input lists
-    def _dedup(jobs):
-        seen: set = set()
-        out = []
-        for j in jobs:
-            if j.job_id in seen:
-                continue
-            seen.add(j.job_id)
-            out.append(j)
-        return out
-
-    deduped_q = _dedup(qualifying_jobs)
-    deduped_a = _dedup(all_jobs)
-    deduped_s = _dedup(all_scraped_jobs or [])
-
-    new_q = [j for j in deduped_q if j.job_id not in existing_q]
-    new_a = [j for j in deduped_a if j.job_id not in existing_a]
-    new_s = [j for j in deduped_s if j.job_id not in existing_s]
-
-    _append_jobs(
-        wb["Zero Experience Jobs"], new_q,
-        columns=QUALIFYING_COLUMNS, highlight_fn=lambda j: ACCEPT_FILL,
+    # Merge stored rows with this run's jobs, dedupe by job id, then
+    # rebuild each sheet latest-first.
+    _rebuild_job_sheet(
+        wb["Zero Experience Jobs"], new_jobs=qualifying_jobs,
+        exclude_ids=excluded,
+        highlight_fn=_hl_accepted,
     )
-    _append_jobs(
-        wb["All Filtered Jobs"], new_a,
-        columns=ALL_FILTERED_COLUMNS,
-        highlight_fn=lambda j: ACCEPT_FILL if j.accepted else REJECT_FILL,
+    _rebuild_job_sheet(
+        wb["All Filtered Jobs"], new_jobs=all_jobs,
+        exclude_ids=excluded,
+        highlight_fn=_hl_filtered_row,
     )
-    if new_s:
-        _append_jobs(
-            wb["All Scraped Jobs"], new_s,
-            columns=ALL_SCRAPED_COLUMNS,
-            highlight_fn=lambda j: (
-                ACCEPT_FILL if j.accepted
-                else ERROR_FILL if j.error
-                else LOC_MATCH_FILL if j.is_location_match
-                else REJECT_FILL
-            ),
-        )
-
+    _rebuild_job_sheet(
+        wb["All Scraped Jobs"], new_jobs=(all_scraped_jobs or []),
+        exclude_ids=set(),
+        highlight_fn=_hl_scraped_row,
+    )
+    _write_applied(wb["Applied Jobs"], applied_records or [])
     _write_summary(wb["Run Summary"], run_summary)
 
     tmp_path = path.with_suffix(".tmp.xlsx")
     wb.save(tmp_path)
     tmp_path.replace(path)
     log.info(
-        "excel saved: %s (qualifying=%d filtered=%d scraped=%d, new_q=%d new_a=%d new_s=%d)",
+        "excel saved: %s (qualifying=%d filtered=%d scraped=%d applied=%d)",
         path, len(qualifying_jobs), len(all_jobs), len(all_scraped_jobs or []),
-        len(new_q), len(new_a), len(new_s),
+        len(applied_records or []),
     )
 
 
+# --------------------------------------------------------------------------- #
+#  Row model: every sheet body is a list of flat dicts keyed by column attr
+# --------------------------------------------------------------------------- #
+
+def _job_to_row(job: ScrapedJob, columns) -> dict:
+    return {attr: _cell_value(job, attr) for _h, attr, _w in columns}
+
+
+def _read_rows(ws, columns) -> List[dict]:
+    """Existing sheet body as row dicts (values already formatted)."""
+    rows: List[dict] = []
+    for values in ws.iter_rows(min_row=2, values_only=True):
+        if not any(v not in (None, "") for v in values):
+            continue
+        row = {}
+        for (_h, attr, _w), v in zip(columns, values):
+            row[attr] = v
+        rows.append(row)
+    return rows
+
+
+def _row_id(row: dict) -> str:
+    from .utils import job_id as compute_id
+    url = str(row.get("ats_url") or "")
+    return compute_id(url) if url else ""
+
+
+def _sort_key(row: dict):
+    from datetime import datetime as _dt
+    posted = row.get("posted_date")
+    if isinstance(posted, _dt):
+        posted = posted.date()
+    if isinstance(posted, str):
+        try:
+            posted = date.fromisoformat(str(posted)[:10])
+        except ValueError:
+            posted = None
+    return (posted is not None, posted or date.min, str(row.get("scraped_at") or ""))
+
+
+def _rebuild_job_sheet(ws, new_jobs: Iterable[ScrapedJob], exclude_ids: set,
+                       highlight_fn) -> None:
+    columns = JOB_SHEETS[ws.title]
+    rows = _read_rows(ws, columns)
+    rows.extend(_job_to_row(j, columns) for j in new_jobs)
+
+    deduped: List[dict] = []
+    seen: set = set()
+    for row in rows:
+        rid = _row_id(row)
+        if rid and (rid in seen or rid in exclude_ids):
+            continue
+        if rid:
+            seen.add(rid)
+        deduped.append(row)
+    deduped.sort(key=_sort_key, reverse=True)
+
+    _clear_body(ws)
+    _style_header_row(ws, columns)
+    _write_rows(ws, deduped, columns, highlight_fn)
+
+
+def _clear_body(ws) -> None:
+    if ws.max_row > 1:
+        ws.delete_rows(2, ws.max_row - 1)
+
+
+def _write_rows(ws, rows: List[dict], columns, highlight_fn) -> None:
+    for i, row in enumerate(rows):
+        row_idx = i + 2
+        fill = highlight_fn(row)
+        for col_idx, (_header, attr, _width) in enumerate(columns, start=1):
+            value = row.get(attr)
+            value = "" if value is None else value
+            cell = ws.cell(row=row_idx, column=col_idx, value=value)
+            cell.font = CELL_FONT
+            cell.alignment = CELL_ALIGN
+            cell.fill = fill
+            cell.border = THIN_BORDER
+            if attr == "ats_url" and value:
+                cell.hyperlink = Hyperlink(ref=cell.coordinate, target=str(value))
+                cell.font = LINK_FONT
+        preview_len = len(str(row.get("description_preview") or ""))
+        ws.row_dimensions[row_idx].height = min(120, max(20, preview_len // 6))
+
+
+def _truthy(value) -> bool:
+    return value in (True, "Yes", "yes", "Y")
+
+
+def _hl_accepted(row: dict):
+    return ACCEPT_FILL
+
+
+def _hl_filtered_row(row: dict):
+    return ACCEPT_FILL if _truthy(row.get("accepted")) else REJECT_FILL
+
+
+def _hl_scraped_row(row: dict):
+    if _truthy(row.get("accepted")):
+        return ACCEPT_FILL
+    if str(row.get("filter_reason") or "").startswith("feedback:"):
+        return FEEDBACK_FILL
+    if row.get("error"):
+        return ERROR_FILL
+    if _truthy(row.get("is_location_match")):
+        return LOC_MATCH_FILL
+    return REJECT_FILL
+
+
+def _write_applied(ws, records: List[dict]) -> None:
+    rows = _read_rows(ws, APPLIED_COLUMNS)
+    known_urls = {str(r.get("ats_url") or "") for r in rows}
+    for rec in records:
+        row = {attr: rec.get(attr, "") for _h, attr, _w in APPLIED_COLUMNS}
+        if str(row.get("ats_url") or "") in known_urls:
+            continue
+        known_urls.add(str(row.get("ats_url") or ""))
+        rows.append(row)
+    rows.sort(key=lambda r: str(r.get("applied_at") or ""), reverse=True)
+    _clear_body(ws)
+    _style_header_row(ws, APPLIED_COLUMNS)
+    _write_rows(ws, rows, APPLIED_COLUMNS, lambda row: ACCEPT_FILL)
+
+
+# --------------------------------------------------------------------------- #
+#  Sheets / styling helpers
+# --------------------------------------------------------------------------- #
+
 def _ensure_sheets(wb: Workbook) -> None:
-    for name in ("Zero Experience Jobs", "All Filtered Jobs", "All Scraped Jobs", "Run Summary"):
+    for name in ALL_SHEETS:
         if name not in wb.sheetnames:
-            ws = wb.create_sheet(name)
-            _style_header_row(ws, _columns_for(name))
+            wb.create_sheet(name)
+            _style_header_row(wb[name], _columns_for(name))
 
 
 def _init_sheets(wb: Workbook) -> None:
     if "Sheet" in wb.sheetnames:
         del wb["Sheet"]
-    for name in ("Zero Experience Jobs", "All Filtered Jobs", "All Scraped Jobs", "Run Summary"):
-        ws = wb.create_sheet(name)
-        _style_header_row(ws, _columns_for(name))
+    for name in ALL_SHEETS:
+        wb.create_sheet(name)
+        _style_header_row(wb[name], _columns_for(name))
 
 
 def _columns_for(sheet_name: str):
-    if sheet_name == "Zero Experience Jobs":
-        return QUALIFYING_COLUMNS
-    if sheet_name == "All Filtered Jobs":
-        return ALL_FILTERED_COLUMNS
-    if sheet_name == "All Scraped Jobs":
-        return ALL_SCRAPED_COLUMNS
+    if sheet_name in JOB_SHEETS:
+        return JOB_SHEETS[sheet_name]
+    if sheet_name == "Applied Jobs":
+        return APPLIED_COLUMNS
     return SUMMARY_COLUMNS
 
 
@@ -216,49 +345,9 @@ def _style_header_row(ws, columns) -> None:
     ws.freeze_panes = "C2"
 
 
-def _existing_job_ids(ws) -> set:
-    url_col = None
-    for cell in ws[1]:
-        if cell.value == "Apply URL":
-            url_col = cell.column
-            break
-    if url_col is None:
-        return set()
-    from .utils import job_id as compute_id
-    ids = set()
-    for row in ws.iter_rows(min_row=2, min_col=url_col, max_col=url_col):
-        for cell in row:
-            if cell.value:
-                ids.add(compute_id(str(cell.value)))
-    return ids
-
-
-def _append_jobs(ws, jobs: List[ScrapedJob], columns, highlight_fn) -> None:
-    if not jobs:
-        return
-    start_row = ws.max_row + 1
-    for i, job in enumerate(jobs):
-        row_idx = start_row + i
-        row_fill = highlight_fn(job)
-        for col_idx, (_header, attr, _width) in enumerate(columns, start=1):
-            value = _cell_value(job, attr)
-            cell = ws.cell(row=row_idx, column=col_idx, value=value)
-            cell.font = CELL_FONT
-            cell.alignment = CELL_ALIGN
-            cell.fill = row_fill
-            cell.border = THIN_BORDER
-            if attr == "ats_url" and value:
-                cell.hyperlink = Hyperlink(ref=cell.coordinate, target=str(value))
-                cell.font = LINK_FONT
-        desc_len = len((job.description_preview or ""))
-        ws.row_dimensions[row_idx].height = min(120, max(20, desc_len // 6))
-
-
 def _cell_value(job: ScrapedJob, attr: str):
     if attr == "scraped_at":
         return job.scraped_at or ""
-    if attr == "source":
-        return job.source or ""
     if attr == "location_type":
         return job.location_type or ""
     if attr == "seniority":
@@ -309,6 +398,8 @@ def _write_summary(ws, summary: dict) -> None:
         ("Rejected (location)",      summary.get("not_location_count", 0)),
         ("Rejected (category)",      summary.get("wrong_category_count", 0)),
         ("Rejected (experience)",    summary.get("has_experience_count", 0)),
+        ("Rejected (your feedback)", summary.get("feedback_rejected_count", 0)),
+        ("Skipped (already applied)", summary.get("applied_seen_count", 0)),
         ("Errors",                   summary.get("error_count", 0)),
         ("Newly written",            summary.get("new_written", 0)),
         ("Duration (seconds)",       round(summary.get("duration_seconds", 0.0), 2)),

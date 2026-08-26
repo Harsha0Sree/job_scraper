@@ -10,6 +10,7 @@ returned ScrapedJob.
 from __future__ import annotations
 
 import logging
+from typing import Optional
 
 from .config import FiltersConfig
 from .data_model import RawJob, ScrapedJob
@@ -20,9 +21,11 @@ from .utils import now_iso
 log = logging.getLogger("scraper.evaluation")
 
 
-def evaluate(raw: RawJob, fetcher, filters_cfg: FiltersConfig) -> ScrapedJob:
+def evaluate(raw: RawJob, fetcher, filters_cfg: FiltersConfig,
+             learned=None) -> ScrapedJob:
     """Evaluate one raw listing: deep-scrape its ATS page when it has one,
-    then apply all three filters and record the outcome on the job."""
+    then apply learned feedback rules and the three filters, recording the
+    outcome on the returned ScrapedJob."""
     job = ScrapedJob.from_raw(raw)
     job.scraped_at = now_iso()
 
@@ -30,6 +33,9 @@ def evaluate(raw: RawJob, fetcher, filters_cfg: FiltersConfig) -> ScrapedJob:
     # filter on the listing hint without fetching.
     if not raw.ats_url.startswith("http"):
         job.description = raw.description_hint
+        reason = _feedback_reason(learned, raw, job)
+        if reason:
+            return _record_feedback_rejection(job, reason)
         _apply_and_record(raw, job, filters_cfg)
         return job
 
@@ -42,6 +48,9 @@ def evaluate(raw: RawJob, fetcher, filters_cfg: FiltersConfig) -> ScrapedJob:
     parser = get_parser_for_url(raw.ats_url)
     if parser is None:
         job.description = raw.description_hint
+        reason = _feedback_reason(learned, raw, job)
+        if reason:
+            return _record_feedback_rejection(job, reason)
         _apply_and_record(raw, job, filters_cfg)
         return job
 
@@ -66,7 +75,29 @@ def evaluate(raw: RawJob, fetcher, filters_cfg: FiltersConfig) -> ScrapedJob:
                 break
     job.seniority = seniority
 
+    # Feedback rules see the merged detail-page text — a phrase you banned
+    # must suppress the job even when it only appears in the full description.
+    reason = _feedback_reason(learned, raw, job)
+    if reason:
+        return _record_feedback_rejection(job, reason)
+
     _apply_and_record(raw, job, filters_cfg)
+    return job
+
+
+def _feedback_reason(learned, raw: RawJob, job: ScrapedJob) -> Optional[str]:
+    if learned is None:
+        return None
+    return learned.check(job.job_id, job.title, job.company, job.location,
+                         job.description)
+
+
+def _record_feedback_rejection(job: ScrapedJob, reason: str) -> ScrapedJob:
+    job.accepted = False
+    job.is_location_match = False
+    job.is_category_match = False
+    job.filter_reason = reason
+    _log_decision(job)
     return job
 
 

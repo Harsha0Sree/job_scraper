@@ -6,7 +6,7 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from .utils import atomic_write_json, now_iso
 from .data_model import ScrapedJob
@@ -23,6 +23,42 @@ class StateManager:
     def has(self, job_id: str) -> bool:
         return job_id in self._state.get("jobs", {})
 
+    def mark_applied(self, job_id: str, ats_url: str, note: str = "") -> bool:
+        """Record a user application. Returns True if newly recorded."""
+        applied = self._state.setdefault("applied", {})
+        if job_id in applied:
+            return False
+        applied[job_id] = {
+            "applied_at": now_iso(),
+            "ats_url": ats_url,
+            "note": note,
+        }
+        return True
+
+    def is_applied(self, job_id: str) -> bool:
+        return job_id in self._state.get("applied", {})
+
+    def applied_records(self) -> List[dict]:
+        out = []
+        for job_id, rec in self._state.get("applied", {}).items():
+            seen = self._state.get("jobs", {}).get(job_id, {})
+            out = out + [{
+                "job_id": job_id,
+                "applied_at": rec.get("applied_at", ""),
+                "ats_url": rec.get("ats_url", ""),
+                "note": rec.get("note", ""),
+                "source": seen.get("source", ""),
+                "title": seen.get("title", ""),
+                "company": seen.get("company", ""),
+                "location": seen.get("location", ""),
+            }]
+        return out
+
+    def job_record(self, job_id: str) -> Optional[dict]:
+        """Everything we know about a seen job (for feedback analysis)."""
+        rec = self._state.get("jobs", {}).get(job_id)
+        return dict(rec) if rec else None
+
     def mark_seen(self, jobs: List[ScrapedJob]) -> int:
         if "jobs" not in self._state:
             self._state["jobs"] = {}
@@ -38,14 +74,22 @@ class StateManager:
                     "title": job.title,
                     "company": job.company,
                     "source": job.source,
+                    "location": job.location,
+                    "seniority": job.seniority,
+                    "filter_reason": job.filter_reason,
+                    # Bounded preview keeps feedback analysis possible offline
+                    # without storing full descriptions.
+                    "description_preview": (job.description_preview or "")[:500],
                 }
                 new_count += 1
             else:
                 entry["last_seen_at"] = now
-                if not entry.get("title") and job.title:
-                    entry["title"] = job.title
-                if not entry.get("company") and job.company:
-                    entry["company"] = job.company
+                for field in ("title", "company", "location", "seniority",
+                              "filter_reason"):
+                    if not entry.get(field) and getattr(job, field, ""):
+                        entry[field] = getattr(job, field)
+                if not entry.get("description_preview") and job.description_preview:
+                    entry["description_preview"] = job.description_preview[:500]
         return new_count
 
     def save(self) -> None:
